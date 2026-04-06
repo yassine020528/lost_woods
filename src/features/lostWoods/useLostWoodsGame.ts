@@ -16,6 +16,8 @@ const initialUiState: GameUiState = {
 }
 
 const randomInt = (maxExclusive: number): number => Math.floor(Math.random() * maxExclusive)
+const MINIMAP_MARGIN = 16
+const MINIMAP_MAX_SIZE = 210
 
 export function useLostWoodsGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -612,6 +614,81 @@ export function useLostWoodsGame() {
     ctx.restore()
   }, [])
 
+  const drawMinimap = useCallback((ctx: CanvasRenderingContext2D) => {
+    const { width, height } = dimensionsRef.current
+    const map = mapRef.current
+    if (!map.length) {
+      return
+    }
+
+    const worldWidth = MAP_W * TILE
+    const worldHeight = MAP_H * TILE
+    const panelSize = Math.min(MINIMAP_MAX_SIZE, Math.floor(Math.min(width, height) * 0.26))
+    const scale = Math.min(panelSize / worldWidth, panelSize / worldHeight)
+    const mapDrawWidth = worldWidth * scale
+    const mapDrawHeight = worldHeight * scale
+    const panelX = width - mapDrawWidth - MINIMAP_MARGIN
+    const panelY = MINIMAP_MARGIN
+    const player = playerRef.current
+    const { x: camX, y: camY } = cameraRef.current
+    const viewWidth = dimensionsRef.current.width
+    const viewHeight = dimensionsRef.current.height
+
+    ctx.save()
+    ctx.translate(panelX, panelY)
+
+    ctx.fillStyle = 'rgba(5, 10, 4, 0.86)'
+    ctx.fillRect(-8, -22, mapDrawWidth + 16, mapDrawHeight + 30)
+    ctx.strokeStyle = 'rgba(180, 220, 120, 0.38)'
+    ctx.lineWidth = 1
+    ctx.strokeRect(-8, -22, mapDrawWidth + 16, mapDrawHeight + 30)
+
+    ctx.fillStyle = 'rgba(210, 230, 180, 0.7)'
+    ctx.font = '11px Georgia, serif'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'top'
+    ctx.fillText('MAP', 0, -18)
+
+    ctx.fillStyle = '#081108'
+    ctx.fillRect(0, 0, mapDrawWidth, mapDrawHeight)
+
+    for (let y = 0; y < MAP_H; y += 1) {
+      for (let x = 0; x < MAP_W; x += 1) {
+        ctx.fillStyle = map[y][x] === 0 ? '#153016' : '#061006'
+        ctx.fillRect(x * TILE * scale, y * TILE * scale, Math.max(1, TILE * scale), Math.max(1, TILE * scale))
+      }
+    }
+
+    keyItemsRef.current.forEach((key) => {
+      if (key.collected) {
+        return
+      }
+      ctx.fillStyle = '#d8a84c'
+      ctx.fillRect(key.x * TILE * scale + 1, key.y * TILE * scale + 1, Math.max(2, TILE * scale * 0.2), Math.max(2, TILE * scale * 0.2))
+    })
+
+    monstersRef.current.forEach((monster) => {
+      ctx.fillStyle = monster.state === 'chase' ? '#ff5244' : '#a83b2a'
+      ctx.beginPath()
+      ctx.arc(monster.x * scale, monster.y * scale, Math.max(2, TILE * scale * 0.12), 0, Math.PI * 2)
+      ctx.fill()
+    })
+
+    ctx.fillStyle = '#7df0ff'
+    ctx.beginPath()
+    ctx.arc(player.x * scale, player.y * scale, Math.max(2.5, TILE * scale * 0.14), 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.strokeStyle = 'rgba(125, 240, 255, 0.9)'
+    ctx.lineWidth = 1.2
+    ctx.strokeRect(camX * scale, camY * scale, viewWidth * scale, viewHeight * scale)
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'
+    ctx.fillRect(0, 0, mapDrawWidth, mapDrawHeight)
+
+    ctx.restore()
+  }, [])
+
   const renderFrame = useCallback((ctx: CanvasRenderingContext2D) => {
     const { width, height } = dimensionsRef.current
 
@@ -622,6 +699,7 @@ export function useLostWoodsGame() {
     drawMonsters(ctx)
     drawPlayer(ctx)
     drawFlashlight(ctx)
+    drawMinimap(ctx)
 
     if (Math.random() < 0.006) {
       ctx.fillStyle = 'rgba(255,200,80,0.025)'
@@ -637,7 +715,7 @@ export function useLostWoodsGame() {
       ctx.fillRect(0, 0, width, height)
       screenFlashRef.current = Math.max(0, screenFlashRef.current - 0.2)
     }
-  }, [drawFlashlight, drawKeys, drawMap, drawMonsters, drawParticles, drawPlayer])
+  }, [drawFlashlight, drawKeys, drawMap, drawMinimap, drawMonsters, drawParticles, drawPlayer])
 
   const loop = useCallback(
     (timestamp: number) => {
@@ -730,6 +808,7 @@ export function useLostWoodsGame() {
           const collected = uiRef.current.collectedKeys + 1
           flashRadiusRef.current = Math.min(220, flashRadiusRef.current + 15)
           spawnCollectParticles(worldX, worldY)
+          audioControllerRef.current?.playKeyCollect()
           updateUi({ collectedKeys: collected })
 
           if (collected >= TOTAL_KEYS && !winShownRef.current) {

@@ -2,6 +2,7 @@ import type { Monster, Player } from './types'
 
 export interface AudioController {
   stop: () => void
+  playKeyCollect: () => void
 }
 
 export function createAmbientAudio(getScene: () => {
@@ -231,7 +232,38 @@ export function createAmbientAudio(getScene: () => {
   registerTimeout(scheduleThump, 2000)
   updateHeartbeat()
 
+  const playKeyCollect = (): void => {
+    const time = audioCtx.currentTime
+
+    const makeTone = (frequency: number, startGain: number, endTime: number): void => {
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      const filter = audioCtx.createBiquadFilter()
+
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(frequency, time)
+      osc.frequency.exponentialRampToValueAtTime(frequency * 1.5, endTime)
+
+      filter.type = 'highpass'
+      filter.frequency.setValueAtTime(700, time)
+
+      gain.gain.setValueAtTime(0, time)
+      gain.gain.linearRampToValueAtTime(startGain, time + 0.01)
+      gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
+
+      osc.connect(filter)
+      filter.connect(gain)
+      gain.connect(master)
+      osc.start(time)
+      osc.stop(endTime + 0.03)
+    }
+
+    makeTone(880, 0.3, time + 0.11)
+    makeTone(1320, 0.2, time + 0.14)
+  }
+
   return {
+    playKeyCollect,
     stop: () => {
       timers.forEach((id) => window.clearTimeout(id))
       audioCtx.close().catch(() => {
