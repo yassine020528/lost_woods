@@ -6,6 +6,10 @@ import {
   MONSTER_COUNT,
   MONSTER_MIN_SPAWN_DIST_FROM_PLAYER,
   MONSTER_TYPES,
+  SPELL_COOLDOWN_MS,
+  SPELL_RADIUS,
+  SPELL_RESPAWN_MAX_DIST,
+  SPELL_RESPAWN_MIN_DIST,
   TILE,
   TOTAL_KEYS,
 } from './constants'
@@ -16,6 +20,9 @@ const initialUiState: GameUiState = {
   collectedKeys: 0,
   totalKeys: TOTAL_KEYS,
   stamina: 100,
+  spellReady: true,
+  spellCooldownPercent: 100,
+  spellCooldownSeconds: 0,
   overlayVisible: true,
   jumpscareVisible: false,
   winVisible: false,
@@ -68,6 +75,7 @@ export function useLostWoodsGame() {
   const flashRadiusRef = useRef(140)
   const hintTimerRef = useRef(4000)
   const screenFlashRef = useRef(0)
+  const spellCooldownMsRef = useRef(0)
 
   const dimensionsRef = useRef({ width: 0, height: 0 })
   const audioControllerRef = useRef<AudioController | null>(null)
@@ -270,10 +278,14 @@ export function useLostWoodsGame() {
     hintTimerRef.current = 4000
     screenFlashRef.current = 0
     lastTimeRef.current = 0
+    spellCooldownMsRef.current = 0
 
     updateUi({
       collectedKeys: 0,
       stamina: 100,
+      spellReady: true,
+      spellCooldownPercent: 100,
+      spellCooldownSeconds: 0,
       overlayVisible: true,
       jumpscareVisible: false,
       winVisible: false,
@@ -393,6 +405,73 @@ export function useLostWoodsGame() {
       })
     }
   }, [])
+
+  const updateSpellCooldownUi = useCallback(() => {
+    const remainingMs = Math.max(0, spellCooldownMsRef.current)
+    const ready = remainingMs <= 0
+    const cooldownPercent = ready ? 100 : Math.round(((SPELL_COOLDOWN_MS - remainingMs) / SPELL_COOLDOWN_MS) * 100)
+    const cooldownSeconds = ready ? 0 : Math.ceil(remainingMs / 1000)
+
+    if (
+      uiRef.current.spellReady !== ready ||
+      uiRef.current.spellCooldownPercent !== cooldownPercent ||
+      uiRef.current.spellCooldownSeconds !== cooldownSeconds
+    ) {
+      updateUi({
+        spellReady: ready,
+        spellCooldownPercent: cooldownPercent,
+        spellCooldownSeconds: cooldownSeconds,
+      })
+    }
+  }, [updateUi])
+
+  const castSpell = useCallback(() => {
+    if (
+      !gameStartedRef.current ||
+      spellCooldownMsRef.current > 0 ||
+      jumpscareActiveRef.current ||
+      winShownRef.current ||
+      deathShownRef.current
+    ) {
+      return
+    }
+
+    const player = playerRef.current
+    monstersRef.current.forEach((monster) => {
+      const dist = Math.hypot(monster.x - player.x, monster.y - player.y)
+      if (dist > SPELL_RADIUS) {
+        return
+      }
+
+      spawnCollectParticles(monster.x, monster.y)
+
+      let nextX = monster.x
+      let nextY = monster.y
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const angle = Math.random() * Math.PI * 2
+        const distance = SPELL_RESPAWN_MIN_DIST + Math.random() * (SPELL_RESPAWN_MAX_DIST - SPELL_RESPAWN_MIN_DIST)
+        const targetX = player.x + Math.cos(angle) * distance
+        const targetY = player.y + Math.sin(angle) * distance
+        const projected = projectToWalkable(targetX, targetY)
+
+        if (Math.hypot(projected.x - player.x, projected.y - player.y) >= SPELL_RESPAWN_MIN_DIST * 0.9) {
+          nextX = projected.x
+          nextY = projected.y
+          break
+        }
+      }
+
+      monster.x = nextX
+      monster.y = nextY
+      monster.state = 'idle'
+      monster.wanderTimer = 0
+      monster.wanderAngle = Math.random() * Math.PI * 2
+    })
+
+    screenFlashRef.current = Math.max(screenFlashRef.current, 0.7)
+    spellCooldownMsRef.current = SPELL_COOLDOWN_MS
+    updateSpellCooldownUi()
+  }, [projectToWalkable, spawnCollectParticles, updateSpellCooldownUi])
 
   const updateMonsters = useCallback(
     (dt: number) => {
@@ -1025,6 +1104,11 @@ export function useLostWoodsGame() {
       lastTimeRef.current = timestamp
       tickRef.current += 1
 
+      if (spellCooldownMsRef.current > 0) {
+        spellCooldownMsRef.current = Math.max(0, spellCooldownMsRef.current - dt)
+        updateSpellCooldownUi()
+      }
+
       if (jumpscareActiveRef.current) {
         jumpscareTimerRef.current += dt
         if (jumpscareTimerRef.current > 900 && jumpscareCountRef.current < 3) {
@@ -1122,7 +1206,7 @@ export function useLostWoodsGame() {
       updateParticles(dt)
       renderFrame(ctx)
     },
-    [movePlayer, projectToWalkable, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateUi],
+    [movePlayer, projectToWalkable, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateSpellCooldownUi, updateUi],
   )
 
   useEffect(() => {
@@ -1143,6 +1227,9 @@ export function useLostWoodsGame() {
 
     const onKeyDown = (event: KeyboardEvent): void => {
       heldRef.current[event.key] = true
+      if (!event.repeat && (event.key === 'e' || event.key === 'E' || event.key === ' ')) {
+        castSpell()
+      }
     }
     const onKeyUp = (event: KeyboardEvent): void => {
       heldRef.current[event.key] = false
@@ -1165,7 +1252,7 @@ export function useLostWoodsGame() {
       audioControllerRef.current?.stop()
       audioControllerRef.current = null
     }
-  }, [generateMap, loop])
+  }, [castSpell, generateMap, loop])
 
   const startGame = useCallback(() => {
     if (gameStartedRef.current) {

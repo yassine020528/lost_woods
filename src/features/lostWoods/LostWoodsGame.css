@@ -33,6 +33,66 @@
   text-shadow: 0 0 8px #a56000;
 }
 
+.spell-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  min-width: 178px;
+  max-width: 220px;
+  padding: 9px 10px;
+  border: 1px solid rgba(150, 200, 90, 0.28);
+  background: rgba(8, 16, 7, 0.78);
+  border-radius: 7px;
+  color: #9fb182;
+  z-index: 10;
+}
+
+.spell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+
+.spell-keybind {
+  color: #d4f2a2;
+}
+
+.spell-track {
+  margin-top: 6px;
+  height: 7px;
+  background: rgba(12, 22, 10, 0.9);
+  border: 1px solid rgba(98, 126, 61, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.spell-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4b7a2a, #88c94a);
+  transition: width 0.15s linear;
+}
+
+.spell-status {
+  margin-top: 4px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.spell-ready {
+  border-color: rgba(160, 226, 98, 0.52);
+  box-shadow: 0 0 14px rgba(120, 200, 80, 0.17);
+}
+
+.spell-ready .spell-status {
+  color: #c5f08a;
+}
+
+.spell-cooling .spell-status {
+  color: #8ca274;
+}
+
 .controls-hint {
   color: #3a3a3a;
   font-size: 12px;
@@ -260,6 +320,12 @@
     padding: 12px;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .spell-panel {
+    right: 12px;
+    bottom: 12px;
+    width: min(60vw, 220px);
   }
 
   .controls-hint {

@@ -47,6 +47,9 @@ export interface GameUiState {
   collectedKeys: number
   totalKeys: number
   stamina: number
+  spellReady: boolean
+  spellCooldownPercent: number
+  spellCooldownSeconds: number
   overlayVisible: boolean
   jumpscareVisible: boolean
   winVisible: boolean

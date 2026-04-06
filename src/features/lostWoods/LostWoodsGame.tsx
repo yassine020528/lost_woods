@@ -22,6 +22,15 @@ export function LostWoodsGame() {
         <div className="keys-display">
           KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
         </div>
+        <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
+          <div className="spell-header">
+            SPELL <span className="spell-keybind">E</span>
+          </div>
+          <div className="spell-track">
+            <div className="spell-fill" style={{ width: `${ui.spellCooldownPercent}%` }} />
+          </div>
+          <div className="spell-status">{ui.spellReady ? 'READY' : `RECHARGING ${ui.spellCooldownSeconds}s`}</div>
+        </div>
       </div>
 
       <div className="stamina-bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={ui.stamina}>
@@ -43,6 +52,7 @@ export function LostWoodsGame() {
           <p className="desc">Collect all 5 keys hidden in the forest.</p>
           <p className="desc">Use WASD or Arrow Keys to move.</p>
           <p className="desc">Hold Shift to run, but watch your stamina.</p>
+          <p className="desc">Press E to cast a purge spell (30s recharge).</p>
           <p className="sub-desc">Your flashlight is your only friend.</p>
           <p className="warn">You are not alone in these woods.</p>
           <button type="button" className="action-btn action-btn-start" onClick={startGame}>
