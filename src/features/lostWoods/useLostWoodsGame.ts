@@ -368,6 +368,7 @@ export function useLostWoodsGame() {
     jumpscareTimerRef.current = 0
     jumpscareCountRef.current += 1
     screenFlashRef.current = 1
+    audioControllerRef.current?.playJumpscare()
 
     const face = JUMPSCARE_FACES[randomInt(JUMPSCARE_FACES.length)]
     updateUi({ jumpscareVisible: true, jumpscareText: face })

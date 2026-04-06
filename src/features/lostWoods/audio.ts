@@ -3,6 +3,7 @@ import type { Monster, Player } from './types'
 export interface AudioController {
   stop: () => void
   playKeyCollect: () => void
+  playJumpscare: () => void
 }
 
 export function createAmbientAudio(getScene: () => {
@@ -262,8 +263,67 @@ export function createAmbientAudio(getScene: () => {
     makeTone(1320, 0.2, time + 0.14)
   }
 
+  const playJumpscare = (): void => {
+    const time = audioCtx.currentTime
+
+    const noiseDuration = 0.35
+    const noiseSize = Math.max(1, Math.floor(audioCtx.sampleRate * noiseDuration))
+    const noiseBuffer = audioCtx.createBuffer(1, noiseSize, audioCtx.sampleRate)
+    const noiseData = noiseBuffer.getChannelData(0)
+    for (let i = 0; i < noiseSize; i += 1) {
+      noiseData[i] = (Math.random() * 2 - 1) * 0.9
+    }
+
+    const noiseSource = audioCtx.createBufferSource()
+    noiseSource.buffer = noiseBuffer
+
+    const noiseFilter = audioCtx.createBiquadFilter()
+    noiseFilter.type = 'bandpass'
+    noiseFilter.frequency.setValueAtTime(1800, time)
+    noiseFilter.Q.setValueAtTime(0.9, time)
+
+    const noiseGain = audioCtx.createGain()
+    noiseGain.gain.setValueAtTime(0.001, time)
+    noiseGain.gain.exponentialRampToValueAtTime(0.26, time + 0.03)
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + noiseDuration)
+
+    noiseSource.connect(noiseFilter)
+    noiseFilter.connect(noiseGain)
+    noiseGain.connect(master)
+    noiseSource.start(time)
+    noiseSource.stop(time + noiseDuration + 0.02)
+
+    const makeStab = (frequency: number, decay: number, gainPeak: number): void => {
+      const osc = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      const filter = audioCtx.createBiquadFilter()
+
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(frequency, time)
+      osc.frequency.exponentialRampToValueAtTime(Math.max(60, frequency * 0.45), time + decay)
+
+      filter.type = 'lowpass'
+      filter.frequency.setValueAtTime(2400, time)
+      filter.frequency.exponentialRampToValueAtTime(380, time + decay)
+
+      gain.gain.setValueAtTime(0.001, time)
+      gain.gain.exponentialRampToValueAtTime(gainPeak, time + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.001, time + decay)
+
+      osc.connect(filter)
+      filter.connect(gain)
+      gain.connect(master)
+      osc.start(time)
+      osc.stop(time + decay + 0.04)
+    }
+
+    makeStab(260, 0.24, 0.2)
+    makeStab(130, 0.28, 0.16)
+  }
+
   return {
     playKeyCollect,
+    playJumpscare,
     stop: () => {
       timers.forEach((id) => window.clearTimeout(id))
       audioCtx.close().catch(() => {
