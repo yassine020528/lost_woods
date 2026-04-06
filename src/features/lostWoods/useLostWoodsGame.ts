@@ -1182,9 +1182,9 @@ export function useLostWoodsGame() {
         player.stamina = Math.min(100, player.stamina + dt * 0.035)
       }
 
-      const staminaInt = Math.round(player.stamina)
-      if (staminaInt !== uiRef.current.stamina) {
-        updateUi({ stamina: staminaInt })
+      const staminaUiValue = Math.round(player.stamina * 10) / 10
+      if (staminaUiValue !== uiRef.current.stamina) {
+        updateUi({ stamina: staminaUiValue })
       }
 
       const { width, height } = dimensionsRef.current
