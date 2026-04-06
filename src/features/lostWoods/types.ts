@@ -1,0 +1,56 @@
+export type TileType = 0 | 1 | 2
+
+export interface TreeData {
+  trunkW: number
+  lean: number
+  size: number
+  layers: number
+  dark: boolean
+}
+
+export interface KeyItem {
+  x: number
+  y: number
+  collected: boolean
+  bob: number
+}
+
+export interface Monster {
+  x: number
+  y: number
+  speed: number
+  alertR: number
+  state: 'idle' | 'chase'
+  wanderAngle: number
+  wanderTimer: number
+  face: string
+  phase: number
+}
+
+export interface Particle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  life: number
+}
+
+export interface Player {
+  x: number
+  y: number
+  angle: number
+  stamina: number
+  speed: number
+}
+
+export interface GameUiState {
+  collectedKeys: number
+  totalKeys: number
+  stamina: number
+  overlayVisible: boolean
+  jumpscareVisible: boolean
+  jumpscareText: string
+  winVisible: boolean
+  deathVisible: boolean
+  hintVisible: boolean
+}
