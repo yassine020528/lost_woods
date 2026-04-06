@@ -22,7 +22,6 @@ export function LostWoodsGame() {
         <div className="keys-display">
           KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
         </div>
-        <div className="controls-hint">WASD / ARROWS · SHIFT to run</div>
       </div>
 
       <div className="stamina-bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={ui.stamina}>

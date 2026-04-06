@@ -19,6 +19,16 @@ const randomInt = (maxExclusive: number): number => Math.floor(Math.random() * m
 const MINIMAP_MARGIN = 16
 const MINIMAP_MAX_SIZE = 210
 
+const shuffle = <T,>(values: T[]): T[] => {
+  for (let i = values.length - 1; i > 0; i -= 1) {
+    const j = randomInt(i + 1)
+    const temp = values[i]
+    values[i] = values[j]
+    values[j] = temp
+  }
+  return values
+}
+
 export function useLostWoodsGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [ui, setUi] = useState<GameUiState>(initialUiState)
@@ -106,14 +116,88 @@ export function useLostWoodsGame() {
       }
     }
 
+    const reachable = Array.from({ length: MAP_H }, () => Array<boolean>(MAP_W).fill(false))
+    const queue: Array<[number, number]> = [[3, 3]]
+
+    while (queue.length > 0) {
+      const [cx, cy] = queue.shift() as [number, number]
+
+      if (cx < 0 || cy < 0 || cx >= MAP_W || cy >= MAP_H) {
+        continue
+      }
+      if (reachable[cy][cx] || map[cy][cx] !== 0) {
+        continue
+      }
+
+      reachable[cy][cx] = true
+      queue.push([cx + 1, cy])
+      queue.push([cx - 1, cy])
+      queue.push([cx, cy + 1])
+      queue.push([cx, cy - 1])
+    }
+
+    const farCandidates: Array<[number, number]> = []
+    const mediumCandidates: Array<[number, number]> = []
+    const nearCandidates: Array<[number, number]> = []
+
+    for (let y = 1; y < MAP_H - 1; y += 1) {
+      for (let x = 1; x < MAP_W - 1; x += 1) {
+        if (!reachable[y][x]) {
+          continue
+        }
+
+        const distFromSpawn = Math.hypot(x - 3, y - 3)
+        if (distFromSpawn > 10) {
+          farCandidates.push([x, y])
+        } else if (distFromSpawn > 4) {
+          mediumCandidates.push([x, y])
+        } else if (distFromSpawn > 1.5) {
+          nearCandidates.push([x, y])
+        }
+      }
+    }
+
     const keyItems: KeyItem[] = []
-    let attempts = 0
-    while (keyItems.length < TOTAL_KEYS && attempts < 5000) {
-      attempts += 1
-      const kx = 7 + randomInt(MAP_W - 14)
-      const ky = 7 + randomInt(MAP_H - 14)
-      if (map[ky][kx] === 0 && Math.hypot(kx - 3, ky - 3) > 10) {
+    const orderedCandidates = [...shuffle(farCandidates), ...shuffle(mediumCandidates), ...shuffle(nearCandidates)]
+    const occupied = new Set<string>()
+
+    for (const [kx, ky] of orderedCandidates) {
+      const id = `${kx},${ky}`
+      if (occupied.has(id)) {
+        continue
+      }
+
+      keyItems.push({ x: kx, y: ky, collected: false, bob: Math.random() * Math.PI * 2 })
+      occupied.add(id)
+
+      if (keyItems.length >= TOTAL_KEYS) {
+        break
+      }
+    }
+
+    // Safety net: if a map produced too few reachable tiles, fill from any reachable floor tile.
+    if (keyItems.length < TOTAL_KEYS) {
+      const allReachable: Array<[number, number]> = []
+      for (let y = 1; y < MAP_H - 1; y += 1) {
+        for (let x = 1; x < MAP_W - 1; x += 1) {
+          if (reachable[y][x]) {
+            allReachable.push([x, y])
+          }
+        }
+      }
+
+      for (const [kx, ky] of shuffle(allReachable)) {
+        const id = `${kx},${ky}`
+        if (occupied.has(id)) {
+          continue
+        }
+
         keyItems.push({ x: kx, y: ky, collected: false, bob: Math.random() * Math.PI * 2 })
+        occupied.add(id)
+
+        if (keyItems.length >= TOTAL_KEYS) {
+          break
+        }
       }
     }
 
