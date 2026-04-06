@@ -2,6 +2,7 @@ import type { Monster, Player } from './types'
 
 export interface AudioController {
   stop: () => void
+  setMuted: (muted: boolean) => void
   playKeyCollect: () => void
   playJumpscare: () => void
   playSpellCast: () => void
@@ -13,7 +14,7 @@ export function createAmbientAudio(getScene: () => {
   deathShown: boolean
   monsters: Monster[]
   player: Player
-}): AudioController | null {
+}, initialMuted = false): AudioController | null {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
   if (!AudioContextCtor) {
     return null
@@ -28,8 +29,17 @@ export function createAmbientAudio(getScene: () => {
   }
 
   const master = audioCtx.createGain()
-  master.gain.setValueAtTime(0.7, audioCtx.currentTime)
+  let isMuted = initialMuted
+  master.gain.setValueAtTime(isMuted ? 0 : 0.7, audioCtx.currentTime)
   master.connect(audioCtx.destination)
+
+  const setMuted = (muted: boolean): void => {
+    isMuted = muted
+    const target = muted ? 0 : 0.7
+    const now = audioCtx.currentTime
+    master.gain.cancelScheduledValues(now)
+    master.gain.setTargetAtTime(target, now, 0.02)
+  }
 
   const makeDrone = (freq: number, detune: number, volume: number): void => {
     const osc = audioCtx.createOscillator()
@@ -374,6 +384,7 @@ export function createAmbientAudio(getScene: () => {
   }
 
   return {
+    setMuted,
     playKeyCollect,
     playJumpscare,
     playSpellCast,

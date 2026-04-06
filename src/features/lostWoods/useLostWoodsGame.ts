@@ -50,6 +50,7 @@ const clamp = (value: number, min: number, max: number): number => Math.max(min,
 export function useLostWoodsGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const [ui, setUi] = useState<GameUiState>(initialUiState)
+  const [isMuted, setIsMuted] = useState(false)
 
   const uiRef = useRef(initialUiState)
   const gameStartedRef = useRef(false)
@@ -80,6 +81,7 @@ export function useLostWoodsGame() {
 
   const dimensionsRef = useRef({ width: 0, height: 0 })
   const audioControllerRef = useRef<AudioController | null>(null)
+  const mutedRef = useRef(false)
 
   const updateUi = useCallback((patch: Partial<GameUiState>) => {
     setUi((prev) => {
@@ -1280,22 +1282,41 @@ export function useLostWoodsGame() {
     lastTimeRef.current = performance.now()
     updateUi({ overlayVisible: false })
 
-    audioControllerRef.current = createAmbientAudio(() => ({
-      gameStarted: gameStartedRef.current,
-      winShown: winShownRef.current,
-      deathShown: deathShownRef.current,
-      monsters: monstersRef.current,
-      player: playerRef.current,
-    }))
+    audioControllerRef.current = createAmbientAudio(
+      () => ({
+        gameStarted: gameStartedRef.current,
+        winShown: winShownRef.current,
+        deathShown: deathShownRef.current,
+        monsters: monstersRef.current,
+        player: playerRef.current,
+      }),
+      mutedRef.current,
+    )
   }, [updateUi])
 
   const restart = useCallback(() => {
     generateMap()
   }, [generateMap])
 
+  const toggleMute = useCallback(() => {
+    setIsMuted((prev) => {
+      const next = !prev
+      mutedRef.current = next
+      audioControllerRef.current?.setMuted(next)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    mutedRef.current = isMuted
+    audioControllerRef.current?.setMuted(isMuted)
+  }, [isMuted])
+
   return {
     canvasRef,
     ui,
+    isMuted,
+    toggleMute,
     startGame,
     restart,
   }

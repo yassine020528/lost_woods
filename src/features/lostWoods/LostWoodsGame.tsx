@@ -11,8 +11,21 @@ const staminaClassName = (stamina: number): string => {
   return 'stamina-low'
 }
 
+const SoundIcon = ({ muted }: { muted: boolean }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className="mute-icon">
+    <path d="M3 10h4l5-4v12l-5-4H3z" fill="currentColor" />
+    {!muted && (
+      <>
+        <path d="M15 9a4 4 0 010 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <path d="M17.5 6.5a7.5 7.5 0 010 11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </>
+    )}
+    {muted && <path d="M4 4l16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />}
+  </svg>
+)
+
 export function LostWoodsGame() {
-  const { canvasRef, ui, startGame, restart } = useLostWoodsGame()
+  const { canvasRef, ui, isMuted, toggleMute, startGame, restart } = useLostWoodsGame()
 
   return (
     <main className="lost-woods-root">
@@ -22,6 +35,15 @@ export function LostWoodsGame() {
         <div className="keys-display">
           KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
         </div>
+        <button
+          type="button"
+          className="mute-btn hud-mute-btn"
+          onClick={toggleMute}
+          aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+          title={isMuted ? 'Unmute audio' : 'Mute audio'}
+        >
+          <SoundIcon muted={isMuted} />
+        </button>
         <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
           <div className="spell-header">
             SPELL <span className="spell-keybind">E</span>
@@ -55,6 +77,15 @@ export function LostWoodsGame() {
           <p className="desc">Press E to cast a purge spell (30s recharge).</p>
           <p className="sub-desc">Your flashlight is your only friend.</p>
           <p className="warn">You are not alone in these woods.</p>
+          <button
+            type="button"
+            className="mute-btn menu-mute-btn"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isMuted ? 'Unmute audio' : 'Mute audio'}
+          >
+            <SoundIcon muted={isMuted} />
+          </button>
           <button type="button" className="action-btn action-btn-start" onClick={startGame}>
             ENTER THE FOREST
           </button>
