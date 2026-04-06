@@ -89,6 +89,7 @@ export function useLostWoodsGame() {
   const audioControllerRef = useRef<AudioController | null>(null)
   const menuAudioRef = useRef<HTMLAudioElement | null>(null)
   const menuAudioSwapRef = useRef<HTMLAudioElement | null>(null)
+  const clickAudioRef = useRef<HTMLAudioElement | null>(null)
   const menuLoopTimerRef = useRef<number | null>(null)
   const menuCrossfadeTimerRef = useRef<number | null>(null)
   const menuCrossfadingRef = useRef(false)
@@ -131,6 +132,37 @@ export function useLostWoodsGame() {
       menuAudioSwapRef.current = swapAudio
     }
   }, [])
+
+  const ensureClickAudio = useCallback(() => {
+    if (!clickAudioRef.current) {
+      const clickAudio = new Audio('/click.mp3')
+      clickAudio.preload = 'auto'
+      clickAudio.volume = 0.8
+      clickAudioRef.current = clickAudio
+    }
+  }, [])
+
+  const playUiClick = useCallback(
+    (ignoreMute = false) => {
+      ensureClickAudio()
+
+      if (!ignoreMute && mutedRef.current) {
+        return
+      }
+
+      const clickAudio = clickAudioRef.current
+      if (!clickAudio) {
+        return
+      }
+
+      clickAudio.pause()
+      clickAudio.currentTime = 0
+      void clickAudio.play().catch(() => {
+        // Ignore browser playback errors (for example if interaction policy blocks audio).
+      })
+    },
+    [ensureClickAudio],
+  )
 
   const playMenuMusic = useCallback(() => {
     ensureMenuAudios()
@@ -1462,6 +1494,8 @@ export function useLostWoodsGame() {
       audioControllerRef.current?.stop()
       audioControllerRef.current = null
       stopMenuMusic()
+      clickAudioRef.current?.pause()
+      clickAudioRef.current = null
       menuAudioRef.current = null
       menuAudioSwapRef.current = null
     }
@@ -1471,6 +1505,8 @@ export function useLostWoodsGame() {
     if (gameStartedRef.current || uiRef.current.firstLoadVisible) {
       return
     }
+
+    playUiClick()
 
     stopMenuMusic()
     gameStartedRef.current = true
@@ -1491,7 +1527,7 @@ export function useLostWoodsGame() {
         mutedRef.current,
       )
     }
-  }, [stopMenuMusic, updateUi])
+  }, [playUiClick, stopMenuMusic, updateUi])
 
   const openMainMenu = useCallback(() => {
     gameStartedRef.current = false
@@ -1519,8 +1555,9 @@ export function useLostWoodsGame() {
     if (!uiRef.current.firstLoadVisible) {
       return
     }
+    playUiClick()
     openMainMenu()
-  }, [openMainMenu])
+  }, [openMainMenu, playUiClick])
 
   const pauseGame = useCallback(() => {
     if (
@@ -1535,6 +1572,8 @@ export function useLostWoodsGame() {
       return
     }
 
+    playUiClick()
+
     pausedRef.current = true
     heldRef.current = {}
     audioControllerRef.current?.stop()
@@ -1542,12 +1581,14 @@ export function useLostWoodsGame() {
     playMenuMusic()
     lastTimeRef.current = performance.now()
     updateUi({ paused: true })
-  }, [playMenuMusic, updateUi])
+  }, [playMenuMusic, playUiClick, updateUi])
 
   const resumeGame = useCallback(() => {
     if (!pausedRef.current || !gameStartedRef.current) {
       return
     }
+
+    playUiClick()
 
     stopMenuMusic()
     audioControllerRef.current = createAmbientAudio(
@@ -1565,19 +1606,22 @@ export function useLostWoodsGame() {
     heldRef.current = {}
     lastTimeRef.current = performance.now()
     updateUi({ paused: false })
-  }, [stopMenuMusic, updateUi])
+  }, [playUiClick, stopMenuMusic, updateUi])
 
   const backToMainMenu = useCallback(() => {
+    playUiClick()
     generateMap()
     openMainMenu()
-  }, [generateMap, openMainMenu])
+  }, [generateMap, openMainMenu, playUiClick])
 
   const restart = useCallback(() => {
+    playUiClick()
     generateMap()
     openMainMenu()
-  }, [generateMap, openMainMenu])
+  }, [generateMap, openMainMenu, playUiClick])
 
   const toggleMute = useCallback(() => {
+    playUiClick(true)
     setIsMuted((prev) => {
       const next = !prev
       mutedRef.current = next
@@ -1590,7 +1634,7 @@ export function useLostWoodsGame() {
       }
       return next
     })
-  }, [])
+  }, [playUiClick])
 
   useEffect(() => {
     mutedRef.current = isMuted
