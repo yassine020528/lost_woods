@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { MAP_H, MAP_W, JUMPSCARE_FACES, MONSTER_FACES, TILE, TOTAL_KEYS } from './constants'
+import {
+  KEY_MIN_SPACING_STEPS,
+  MAP_H,
+  MAP_W,
+  JUMPSCARE_FACES,
+  MONSTER_COUNT,
+  MONSTER_MIN_SPAWN_DIST_FROM_PLAYER,
+  MONSTER_TYPES,
+  TILE,
+  TOTAL_KEYS,
+} from './constants'
 import { createAmbientAudio, type AudioController } from './audio'
 import type { GameUiState, KeyItem, Monster, Particle, Player, TileType, TreeData } from './types'
 
@@ -29,6 +39,8 @@ const shuffle = <T,>(values: T[]): T[] => {
   }
   return values
 }
+
+const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
 
 export function useLostWoodsGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -160,33 +172,45 @@ export function useLostWoodsGame() {
 
     const keyItems: KeyItem[] = []
     const orderedCandidates = [...shuffle(farCandidates), ...shuffle(mediumCandidates), ...shuffle(nearCandidates)]
-    const occupied = new Set<string>()
-
-    for (const [kx, ky] of orderedCandidates) {
-      const id = `${kx},${ky}`
-      if (occupied.has(id)) {
-        continue
-      }
-
-      keyItems.push({ x: kx, y: ky, collected: false, bob: Math.random() * Math.PI * 2 })
-      occupied.add(id)
-
-      if (keyItems.length >= TOTAL_KEYS) {
-        break
+    const allReachable: Array<[number, number]> = []
+    for (let y = 1; y < MAP_H - 1; y += 1) {
+      for (let x = 1; x < MAP_W - 1; x += 1) {
+        if (reachable[y][x]) {
+          allReachable.push([x, y])
+        }
       }
     }
 
-    // Safety net: if a map produced too few reachable tiles, fill from any reachable floor tile.
-    if (keyItems.length < TOTAL_KEYS) {
-      const allReachable: Array<[number, number]> = []
-      for (let y = 1; y < MAP_H - 1; y += 1) {
-        for (let x = 1; x < MAP_W - 1; x += 1) {
-          if (reachable[y][x]) {
-            allReachable.push([x, y])
-          }
-        }
-      }
+    const occupied = new Set<string>()
+    const canPlaceKey = (x: number, y: number, minSpacingTiles: number): boolean =>
+      keyItems.every((key) => Math.hypot(key.x - x, key.y - y) >= minSpacingTiles)
 
+    const placeFromCandidates = (candidates: Array<[number, number]>, minSpacingTiles: number): void => {
+      for (const [kx, ky] of candidates) {
+        if (keyItems.length >= TOTAL_KEYS) {
+          return
+        }
+
+        const id = `${kx},${ky}`
+        if (occupied.has(id) || !canPlaceKey(kx, ky, minSpacingTiles)) {
+          continue
+        }
+
+        keyItems.push({ x: kx, y: ky, collected: false, bob: Math.random() * Math.PI * 2 })
+        occupied.add(id)
+      }
+    }
+
+    KEY_MIN_SPACING_STEPS.forEach((minSpacingTiles) => {
+      if (keyItems.length >= TOTAL_KEYS) {
+        return
+      }
+      placeFromCandidates(orderedCandidates, minSpacingTiles)
+      placeFromCandidates(shuffle([...allReachable]), minSpacingTiles)
+    })
+
+    // Safety net: if spacing constraints cannot produce enough keys, fill any free reachable floor tile.
+    if (keyItems.length < TOTAL_KEYS) {
       for (const [kx, ky] of shuffle(allReachable)) {
         const id = `${kx},${ky}`
         if (occupied.has(id)) {
@@ -203,16 +227,13 @@ export function useLostWoodsGame() {
     }
 
     const monsters: Monster[] = []
-    for (let i = 0; i < 5; i += 1) {
-      let mx = 10 + randomInt(MAP_W - 20)
-      let my = 10 + randomInt(MAP_H - 20)
-      let guard = 0
+    const monsterCandidates = shuffle([...allReachable]).filter(
+      ([x, y]) => Math.hypot(x - 3, y - 3) >= MONSTER_MIN_SPAWN_DIST_FROM_PLAYER,
+    )
 
-      while (map[my][mx] !== 0 && guard < 1000) {
-        mx = 10 + randomInt(MAP_W - 20)
-        my = 10 + randomInt(MAP_H - 20)
-        guard += 1
-      }
+    for (let i = 0; i < MONSTER_COUNT; i += 1) {
+      const fallback = allReachable[i % allReachable.length] ?? [3, 3]
+      const [mx, my] = monsterCandidates[i] ?? fallback
 
       monsters.push({
         x: mx * TILE + TILE / 2,
@@ -222,7 +243,7 @@ export function useLostWoodsGame() {
         state: 'idle',
         wanderAngle: Math.random() * Math.PI * 2,
         wanderTimer: 0,
-        face: MONSTER_FACES[i % MONSTER_FACES.length],
+        kind: MONSTER_TYPES[i % MONSTER_TYPES.length],
         phase: Math.random() * Math.PI * 2,
       })
     }
@@ -303,6 +324,40 @@ export function useLostWoodsGame() {
     },
     [solid],
   )
+
+  const projectToWalkable = useCallback((wx: number, wy: number): { x: number; y: number } => {
+    const map = mapRef.current
+    if (!map.length) {
+      return { x: 3 * TILE + TILE / 2, y: 3 * TILE + TILE / 2 }
+    }
+
+    const tx = clamp(Math.floor(wx / TILE), 1, MAP_W - 2)
+    const ty = clamp(Math.floor(wy / TILE), 1, MAP_H - 2)
+
+    if (map[ty][tx] === 0) {
+      return { x: tx * TILE + TILE / 2, y: ty * TILE + TILE / 2 }
+    }
+
+    for (let r = 1; r <= 12; r += 1) {
+      for (let oy = -r; oy <= r; oy += 1) {
+        for (let ox = -r; ox <= r; ox += 1) {
+          if (Math.abs(ox) !== r && Math.abs(oy) !== r) {
+            continue
+          }
+          const nx = tx + ox
+          const ny = ty + oy
+          if (nx < 1 || ny < 1 || nx >= MAP_W - 1 || ny >= MAP_H - 1) {
+            continue
+          }
+          if (map[ny][nx] === 0) {
+            return { x: nx * TILE + TILE / 2, y: ny * TILE + TILE / 2 }
+          }
+        }
+      }
+    }
+
+    return { x: 3 * TILE + TILE / 2, y: 3 * TILE + TILE / 2 }
+  }, [])
 
   const triggerJumpscare = useCallback(() => {
     if (jumpscareActiveRef.current || winShownRef.current || deathShownRef.current) {
@@ -577,18 +632,171 @@ export function useLostWoodsGame() {
 
       const alpha = Math.max(0, Math.min(1, 1 - dist / (visibleRadius * 1.4)))
       const bob = Math.sin(tickRef.current * 0.05 + monster.phase) * 4
+      const pulse = 1 + Math.sin(tickRef.current * 0.08 + monster.phase) * 0.06
 
       ctx.save()
       ctx.globalAlpha = alpha * 0.92
-      ctx.font = `${Math.floor(24 + Math.sin(tickRef.current * 0.07) * 2)}px Georgia, serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
+      ctx.translate(sx, sy + bob)
+      ctx.scale(pulse, pulse)
+
       if (monster.state === 'chase') {
         ctx.shadowColor = '#ff2000'
         ctx.shadowBlur = 20
       }
-      ctx.fillStyle = '#e6dfcf'
-      ctx.fillText(monster.face, sx, sy + bob)
+
+      if (monster.kind === 'stalker') {
+        ctx.fillStyle = '#111'
+        ctx.beginPath()
+        ctx.ellipse(0, 0, 13, 16, 0, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = '#d6d2c8'
+        ctx.beginPath()
+        ctx.arc(0, -1, 9.5, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = '#140b08'
+        ctx.beginPath()
+        ctx.arc(-3, -2, 2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(3, -2, 2, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (monster.kind === 'spider') {
+        ctx.strokeStyle = '#120909'
+        ctx.lineWidth = 2.3
+        for (let i = -1; i <= 1; i += 2) {
+          ctx.beginPath()
+          ctx.moveTo(i * 4, -4)
+          ctx.lineTo(i * 14, -10)
+          ctx.lineTo(i * 20, -6)
+          ctx.stroke()
+
+          ctx.beginPath()
+          ctx.moveTo(i * 4, -1)
+          ctx.lineTo(i * 16, -2)
+          ctx.lineTo(i * 22, 3)
+          ctx.stroke()
+
+          ctx.beginPath()
+          ctx.moveTo(i * 4, 2)
+          ctx.lineTo(i * 15, 7)
+          ctx.lineTo(i * 20, 12)
+          ctx.stroke()
+
+          ctx.beginPath()
+          ctx.moveTo(i * 2, 5)
+          ctx.lineTo(i * 12, 13)
+          ctx.lineTo(i * 15, 18)
+          ctx.stroke()
+        }
+
+        ctx.fillStyle = '#090506'
+        ctx.beginPath()
+        ctx.ellipse(0, 3, 10, 12, 0, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.ellipse(0, -6, 7, 7, 0, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = '#d83d2d'
+        ctx.beginPath()
+        ctx.arc(-2.5, -8, 1.2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(2.5, -8, 1.2, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (monster.kind === 'skull') {
+        ctx.fillStyle = '#d7d2c7'
+        ctx.beginPath()
+        ctx.arc(0, -3, 10.5, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillRect(-8, 2, 16, 10)
+
+        ctx.fillStyle = '#19110f'
+        ctx.beginPath()
+        ctx.ellipse(-3.5, -4.5, 2.6, 3.2, -0.2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.ellipse(3.5, -4.5, 2.6, 3.2, 0.2, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.moveTo(0, -0.5)
+        ctx.lineTo(-2, 2.5)
+        ctx.lineTo(2, 2.5)
+        ctx.closePath()
+        ctx.fill()
+
+        ctx.strokeStyle = '#1a1210'
+        ctx.lineWidth = 1.2
+        for (let i = -5; i <= 5; i += 2) {
+          ctx.beginPath()
+          ctx.moveTo(i, 6)
+          ctx.lineTo(i, 10)
+          ctx.stroke()
+        }
+      } else if (monster.kind === 'wraith') {
+        const cloak = ctx.createLinearGradient(0, -18, 0, 20)
+        cloak.addColorStop(0, '#d9e2df')
+        cloak.addColorStop(0.5, '#9fb1ad')
+        cloak.addColorStop(1, '#475653')
+        ctx.fillStyle = cloak
+
+        ctx.beginPath()
+        ctx.moveTo(0, -18)
+        ctx.quadraticCurveTo(12, -12, 11, 2)
+        ctx.quadraticCurveTo(10, 9, 14, 15)
+        ctx.quadraticCurveTo(6, 12, 3, 17)
+        ctx.quadraticCurveTo(0, 10, -3, 17)
+        ctx.quadraticCurveTo(-6, 12, -14, 15)
+        ctx.quadraticCurveTo(-10, 9, -11, 2)
+        ctx.quadraticCurveTo(-12, -12, 0, -18)
+        ctx.closePath()
+        ctx.fill()
+
+        ctx.fillStyle = '#091112'
+        ctx.beginPath()
+        ctx.arc(-3, -6, 1.8, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(3, -6, 1.8, 0, Math.PI * 2)
+        ctx.fill()
+      } else {
+        ctx.fillStyle = '#1a1412'
+        ctx.beginPath()
+        ctx.ellipse(0, 3, 13, 9, 0, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = '#2c1d16'
+        ctx.beginPath()
+        ctx.ellipse(0, -4, 10, 8, 0, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = '#a18a72'
+        ctx.beginPath()
+        ctx.moveTo(-8, -8)
+        ctx.lineTo(-14, -14)
+        ctx.lineTo(-5, -11)
+        ctx.closePath()
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.moveTo(8, -8)
+        ctx.lineTo(14, -14)
+        ctx.lineTo(5, -11)
+        ctx.closePath()
+        ctx.fill()
+
+        ctx.fillStyle = '#e0493b'
+        ctx.beginPath()
+        ctx.arc(-3, -4, 1.6, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(3, -4, 1.6, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
       ctx.restore()
     })
   }, [])
@@ -828,8 +1036,11 @@ export function useLostWoodsGame() {
           monstersRef.current.forEach((monster) => {
             const angle = Math.random() * Math.PI * 2
             const distance = 300 + Math.random() * 200
-            monster.x = playerRef.current.x + Math.cos(angle) * distance
-            monster.y = playerRef.current.y + Math.sin(angle) * distance
+            const proposedX = playerRef.current.x + Math.cos(angle) * distance
+            const proposedY = playerRef.current.y + Math.sin(angle) * distance
+            const projected = projectToWalkable(proposedX, proposedY)
+            monster.x = projected.x
+            monster.y = projected.y
           })
         }
         return
@@ -914,7 +1125,7 @@ export function useLostWoodsGame() {
       updateParticles(dt)
       renderFrame(ctx)
     },
-    [movePlayer, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateUi],
+    [movePlayer, projectToWalkable, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateUi],
   )
 
   useEffect(() => {

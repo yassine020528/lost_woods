@@ -23,7 +23,7 @@ export interface Monster {
   state: 'idle' | 'chase'
   wanderAngle: number
   wanderTimer: number
-  face: string
+  kind: 'stalker' | 'spider' | 'skull' | 'wraith' | 'wolf'
   phase: number
 }
 
