@@ -49,7 +49,6 @@ export interface GameUiState {
   stamina: number
   overlayVisible: boolean
   jumpscareVisible: boolean
-  jumpscareText: string
   winVisible: boolean
   deathVisible: boolean
   hintVisible: boolean

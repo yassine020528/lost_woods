@@ -53,9 +53,6 @@ export function LostWoodsGame() {
 
       {ui.jumpscareVisible && (
         <section className="jumpscare-screen">
-          <div className="jumpscare-inner">
-            <div className="jumpscare-face">{ui.jumpscareText}</div>
-          </div>
           <div className="jumpscare-text">IT FOUND YOU</div>
         </section>
       )}

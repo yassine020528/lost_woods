@@ -184,16 +184,6 @@
   z-index: 999;
 }
 
-.jumpscare-inner {
-  animation: jshake 0.07s infinite;
-}
-
-.jumpscare-face {
-  font-size: clamp(5rem, 20vw, 12rem);
-  line-height: 1;
-  color: #e8ddcf;
-}
-
 .jumpscare-text {
   color: #c83020;
   font-size: 28px;
@@ -252,20 +242,6 @@
 
 .action-btn-death:hover {
   background: rgba(200, 48, 32, 0.1);
-}
-
-@keyframes jshake {
-  0% {
-    transform: translate(-4px, -2px) rotate(-1deg) scale(1.05);
-  }
-
-  50% {
-    transform: translate(4px, 2px) rotate(1deg) scale(0.97);
-  }
-
-  100% {
-    transform: translate(-2px, 4px) rotate(-0.5deg) scale(1.02);
-  }
 }
 
 @keyframes jflicker {

@@ -3,7 +3,6 @@ import {
   KEY_MIN_SPACING_STEPS,
   MAP_H,
   MAP_W,
-  JUMPSCARE_FACES,
   MONSTER_COUNT,
   MONSTER_MIN_SPAWN_DIST_FROM_PLAYER,
   MONSTER_TYPES,
@@ -19,7 +18,6 @@ const initialUiState: GameUiState = {
   stamina: 100,
   overlayVisible: true,
   jumpscareVisible: false,
-  jumpscareText: JUMPSCARE_FACES[0],
   winVisible: false,
   deathVisible: false,
   hintVisible: true,
@@ -278,7 +276,6 @@ export function useLostWoodsGame() {
       stamina: 100,
       overlayVisible: true,
       jumpscareVisible: false,
-      jumpscareText: JUMPSCARE_FACES[0],
       winVisible: false,
       deathVisible: false,
       hintVisible: true,
@@ -370,8 +367,7 @@ export function useLostWoodsGame() {
     screenFlashRef.current = 1
     audioControllerRef.current?.playJumpscare()
 
-    const face = JUMPSCARE_FACES[randomInt(JUMPSCARE_FACES.length)]
-    updateUi({ jumpscareVisible: true, jumpscareText: face })
+    updateUi({ jumpscareVisible: true })
 
     if (jumpscareCountRef.current >= 3) {
       window.setTimeout(() => {
