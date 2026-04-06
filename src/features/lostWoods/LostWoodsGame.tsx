@@ -25,8 +25,21 @@ const SoundIcon = ({ muted }: { muted: boolean }) => (
 )
 
 export function LostWoodsGame() {
-  const { canvasRef, ui, isMuted, toggleMute, enterMainMenu, startGame, pauseGame, resumeGame, backToMainMenu, restart } =
-    useLostWoodsGame()
+  const {
+    canvasRef,
+    ui,
+    isMuted,
+    toggleMute,
+    enterMainMenu,
+    startGame,
+    pauseGame,
+    resumeGame,
+    backToMainMenu,
+    restart,
+    goToControls,
+    goToInfo,
+    goToMainMenu,
+  } = useLostWoodsGame()
   const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible
 
   return (
@@ -102,17 +115,10 @@ export function LostWoodsGame() {
         </section>
       )}
 
-      {ui.mainMenuVisible && (
+      {ui.mainMenuVisible && ui.currentMenuScreen === 'main' && (
         <section className="overlay-screen">
           <h1>LOST WOODS</h1>
           <p className="tagline">A HORROR EXPERIENCE</p>
-          <p className="desc">Collect all 5 keys hidden in the forest.</p>
-          <p className="desc">Use WASD or Arrow Keys to move.</p>
-          <p className="desc">Hold Shift to run, but watch your stamina.</p>
-          <p className="desc">Press E to cast a purge spell (30s recharge).</p>
-          <p className="desc">Press Esc to pause and resume anytime.</p>
-          <p className="sub-desc">Your flashlight is your only friend.</p>
-          <p className="warn">You are not alone in these woods.</p>
           <button
             type="button"
             className="mute-btn menu-mute-btn"
@@ -122,8 +128,65 @@ export function LostWoodsGame() {
           >
             <SoundIcon muted={isMuted} />
           </button>
-          <button type="button" className="action-btn action-btn-start" onClick={startGame}>
-            ENTER THE FOREST
+          <div className="menu-buttons">
+            <button type="button" className="action-btn action-btn-start" onClick={startGame}>
+              ENTER THE FOREST
+            </button>
+            <button type="button" className="action-btn action-btn-menu" onClick={goToControls}>
+              CONTROLS
+            </button>
+            <button type="button" className="action-btn action-btn-menu" onClick={goToInfo}>
+              INFO
+            </button>
+          </div>
+        </section>
+      )}
+
+      {ui.mainMenuVisible && ui.currentMenuScreen === 'controls' && (
+        <section className="overlay-screen">
+          <h1>CONTROLS</h1>
+          <div className="menu-content">
+            <p className="control-item"><span className="control-key">WASD / Arrow Keys</span> - Move around the forest</p>
+            <p className="control-item"><span className="control-key">Shift</span> - Sprint (consumes stamina)</p>
+            <p className="control-item"><span className="control-key">E</span> - Cast purge spell (30s cooldown)</p>
+            <p className="control-item"><span className="control-key">Esc</span> - Pause and resume game</p>
+            <p className="control-item separator">OBJECTIVE</p>
+            <p className="control-item">Collect all 5 keys hidden in the forest</p>
+            <p className="control-item">Avoid the creatures lurking in the darkness</p>
+            <p className="control-item">Use your flashlight to navigate and the spell to defend yourself</p>
+          </div>
+          <button
+            type="button"
+            className="mute-btn menu-mute-btn"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isMuted ? 'Unmute audio' : 'Mute audio'}
+          >
+            <SoundIcon muted={isMuted} />
+          </button>
+          <button type="button" className="action-btn action-btn-menu" onClick={goToMainMenu}>
+            BACK
+          </button>
+        </section>
+      )}
+
+      {ui.mainMenuVisible && ui.currentMenuScreen === 'info' && (
+        <section className="overlay-screen">
+          <h1>INFO</h1>
+          <div className="menu-content">
+            <p className="info-placeholder">Coming soon...</p>
+          </div>
+          <button
+            type="button"
+            className="mute-btn menu-mute-btn"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isMuted ? 'Unmute audio' : 'Mute audio'}
+          >
+            <SoundIcon muted={isMuted} />
+          </button>
+          <button type="button" className="action-btn action-btn-menu" onClick={goToMainMenu}>
+            BACK
           </button>
         </section>
       )}
@@ -145,7 +208,7 @@ export function LostWoodsGame() {
             RESUME
           </button>
           <button type="button" className="action-btn action-btn-pause" onClick={backToMainMenu}>
-            BACK TO MAIN MENU
+            MAIN MENU
           </button>
         </section>
       )}

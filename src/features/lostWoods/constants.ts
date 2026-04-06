@@ -10,4 +10,7 @@ export const SPELL_RADIUS = 175
 export const SPELL_RESPAWN_MIN_DIST = 11 * TILE
 export const SPELL_RESPAWN_MAX_DIST = 18 * TILE
 
+export const SPAWN_PROTECTION_DURATION_MS = 4000
+export const SPAWN_PROTECTION_MIN_MONSTER_DIST = 120
+
 export const MONSTER_TYPES = ['stalker', 'spider', 'skull', 'wraith', 'wolf'] as const

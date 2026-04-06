@@ -10,6 +10,8 @@ import {
   SPELL_RADIUS,
   SPELL_RESPAWN_MAX_DIST,
   SPELL_RESPAWN_MIN_DIST,
+  SPAWN_PROTECTION_DURATION_MS,
+  SPAWN_PROTECTION_MIN_MONSTER_DIST,
   TILE,
   TOTAL_KEYS,
 } from './constants'
@@ -25,6 +27,7 @@ const initialUiState: GameUiState = {
   spellCooldownSeconds: 0,
   firstLoadVisible: true,
   mainMenuVisible: false,
+  currentMenuScreen: 'main',
   paused: false,
   jumpscareVisible: false,
   winVisible: false,
@@ -79,6 +82,7 @@ export function useLostWoodsGame() {
   const jumpscareCountRef = useRef(0)
   const winShownRef = useRef(false)
   const deathShownRef = useRef(false)
+  const spawnProtectionTimerRef = useRef(0)
   const flashRadiusRef = useRef(140)
   const hintTimerRef = useRef(4000)
   const screenFlashRef = useRef(0)
@@ -453,6 +457,7 @@ export function useLostWoodsGame() {
     jumpscareCountRef.current = 0
     winShownRef.current = false
     deathShownRef.current = false
+    spawnProtectionTimerRef.current = SPAWN_PROTECTION_DURATION_MS
     flashRadiusRef.current = 140
     hintTimerRef.current = 4000
     screenFlashRef.current = 0
@@ -549,7 +554,7 @@ export function useLostWoodsGame() {
   }, [])
 
   const triggerJumpscare = useCallback(() => {
-    if (jumpscareActiveRef.current || winShownRef.current || deathShownRef.current) {
+    if (jumpscareActiveRef.current || winShownRef.current || deathShownRef.current || spawnProtectionTimerRef.current > 0) {
       return
     }
 
@@ -697,6 +702,18 @@ export function useLostWoodsGame() {
             monster.y = ny
           } else {
             monster.wanderAngle += Math.PI * (0.5 + Math.random())
+          }
+        }
+
+        // During spawn protection, push monsters away if they get too close
+        if (spawnProtectionTimerRef.current > 0 && dist < SPAWN_PROTECTION_MIN_MONSTER_DIST) {
+          const angle = Math.atan2(monster.y - player.y, monster.x - player.x)
+          const pushDistance = 3
+          const pushX = monster.x + Math.cos(angle) * pushDistance
+          const pushY = monster.y + Math.sin(angle) * pushDistance
+          if (!solid(pushX, pushY)) {
+            monster.x = pushX
+            monster.y = pushY
           }
         }
 
@@ -1304,6 +1321,10 @@ export function useLostWoodsGame() {
         updateSpellCooldownUi()
       }
 
+      if (spawnProtectionTimerRef.current > 0) {
+        spawnProtectionTimerRef.current = Math.max(0, spawnProtectionTimerRef.current - dt)
+      }
+
       if (jumpscareActiveRef.current) {
         jumpscareTimerRef.current += dt
         if (jumpscareTimerRef.current > 900 && jumpscareCountRef.current < 3) {
@@ -1539,6 +1560,7 @@ export function useLostWoodsGame() {
     updateUi({
       firstLoadVisible: false,
       mainMenuVisible: true,
+      currentMenuScreen: 'main',
       paused: false,
       jumpscareVisible: false,
       winVisible: false,
@@ -1647,6 +1669,21 @@ export function useLostWoodsGame() {
     }
   }, [isMuted])
 
+  const goToControls = useCallback(() => {
+    playUiClick()
+    updateUi({ currentMenuScreen: 'controls' })
+  }, [playUiClick, updateUi])
+
+  const goToInfo = useCallback(() => {
+    playUiClick()
+    updateUi({ currentMenuScreen: 'info' })
+  }, [playUiClick, updateUi])
+
+  const goToMainMenu = useCallback(() => {
+    playUiClick()
+    updateUi({ currentMenuScreen: 'main' })
+  }, [playUiClick, updateUi])
+
   return {
     canvasRef,
     ui,
@@ -1658,5 +1695,8 @@ export function useLostWoodsGame() {
     resumeGame,
     backToMainMenu,
     restart,
+    goToControls,
+    goToInfo,
+    goToMainMenu,
   }
 }
