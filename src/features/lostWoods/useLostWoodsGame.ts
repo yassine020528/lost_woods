@@ -17,6 +17,7 @@ const initialUiState: GameUiState = {
 
 const randomInt = (maxExclusive: number): number => Math.floor(Math.random() * maxExclusive)
 const MINIMAP_MARGIN = 16
+const MINIMAP_TOP_MARGIN = 28
 const MINIMAP_MAX_SIZE = 210
 
 const shuffle = <T,>(values: T[]): T[] => {
@@ -712,7 +713,7 @@ export function useLostWoodsGame() {
     const mapDrawWidth = worldWidth * scale
     const mapDrawHeight = worldHeight * scale
     const panelX = width - mapDrawWidth - MINIMAP_MARGIN
-    const panelY = MINIMAP_MARGIN
+    const panelY = MINIMAP_TOP_MARGIN
     const player = playerRef.current
     const { x: camX, y: camY } = cameraRef.current
     const viewWidth = dimensionsRef.current.width
