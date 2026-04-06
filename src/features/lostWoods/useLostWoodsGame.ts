@@ -23,7 +23,9 @@ const initialUiState: GameUiState = {
   spellReady: true,
   spellCooldownPercent: 100,
   spellCooldownSeconds: 0,
-  overlayVisible: true,
+  firstLoadVisible: true,
+  mainMenuVisible: false,
+  paused: false,
   jumpscareVisible: false,
   winVisible: false,
   deathVisible: false,
@@ -34,6 +36,10 @@ const randomInt = (maxExclusive: number): number => Math.floor(Math.random() * m
 const MINIMAP_MARGIN = 16
 const MINIMAP_TOP_MARGIN = 28
 const MINIMAP_MAX_SIZE = 210
+const MENU_MUSIC_VOLUME = 0.58
+const MENU_MUSIC_CROSSFADE_SECONDS = 1.2
+const MENU_MUSIC_CROSSFADE_STEP_MS = 50
+const MENU_MUSIC_LOOP_CHECK_MS = 140
 
 const shuffle = <T,>(values: T[]): T[] => {
   for (let i = values.length - 1; i > 0; i -= 1) {
@@ -81,7 +87,13 @@ export function useLostWoodsGame() {
 
   const dimensionsRef = useRef({ width: 0, height: 0 })
   const audioControllerRef = useRef<AudioController | null>(null)
+  const menuAudioRef = useRef<HTMLAudioElement | null>(null)
+  const menuAudioSwapRef = useRef<HTMLAudioElement | null>(null)
+  const menuLoopTimerRef = useRef<number | null>(null)
+  const menuCrossfadeTimerRef = useRef<number | null>(null)
+  const menuCrossfadingRef = useRef(false)
   const mutedRef = useRef(false)
+  const pausedRef = useRef(false)
 
   const updateUi = useCallback((patch: Partial<GameUiState>) => {
     setUi((prev) => {
@@ -90,6 +102,138 @@ export function useLostWoodsGame() {
       return next
     })
   }, [])
+
+  const menuTargetVolume = useCallback((): number => (mutedRef.current ? 0 : MENU_MUSIC_VOLUME), [])
+
+  const clearMenuTimers = useCallback(() => {
+    if (menuLoopTimerRef.current !== null) {
+      window.clearInterval(menuLoopTimerRef.current)
+      menuLoopTimerRef.current = null
+    }
+    if (menuCrossfadeTimerRef.current !== null) {
+      window.clearInterval(menuCrossfadeTimerRef.current)
+      menuCrossfadeTimerRef.current = null
+    }
+  }, [])
+
+  const ensureMenuAudios = useCallback(() => {
+    if (!menuAudioRef.current) {
+      const menuAudio = new Audio('/creepy_piano.mp3')
+      menuAudio.loop = false
+      menuAudio.preload = 'auto'
+      menuAudioRef.current = menuAudio
+    }
+
+    if (!menuAudioSwapRef.current) {
+      const swapAudio = new Audio('/creepy_piano.mp3')
+      swapAudio.loop = false
+      swapAudio.preload = 'auto'
+      menuAudioSwapRef.current = swapAudio
+    }
+  }, [])
+
+  const playMenuMusic = useCallback(() => {
+    ensureMenuAudios()
+
+    if (!menuAudioRef.current || !menuAudioSwapRef.current) {
+      return
+    }
+
+    clearMenuTimers()
+    menuCrossfadingRef.current = false
+
+    menuAudioRef.current.volume = menuTargetVolume()
+    menuAudioSwapRef.current.volume = 0
+    menuAudioSwapRef.current.pause()
+    menuAudioSwapRef.current.currentTime = 0
+
+    void menuAudioRef.current.play().catch(() => {
+      // Ignore autoplay rejections until user interaction occurs.
+    })
+
+    menuLoopTimerRef.current = window.setInterval(() => {
+      const active = menuAudioRef.current
+      const standby = menuAudioSwapRef.current
+      if (!active || !standby || menuCrossfadingRef.current) {
+        return
+      }
+
+      if (!Number.isFinite(active.duration) || active.duration <= 0 || active.paused) {
+        return
+      }
+
+      const timeLeft = active.duration - active.currentTime
+      if (timeLeft > MENU_MUSIC_CROSSFADE_SECONDS) {
+        return
+      }
+
+      menuCrossfadingRef.current = true
+      standby.currentTime = 0
+      standby.volume = 0
+      void standby.play().catch(() => {
+        menuCrossfadingRef.current = false
+      })
+
+      const steps = Math.max(1, Math.floor((MENU_MUSIC_CROSSFADE_SECONDS * 1000) / MENU_MUSIC_CROSSFADE_STEP_MS))
+      let step = 0
+
+      menuCrossfadeTimerRef.current = window.setInterval(() => {
+        step += 1
+        const mix = Math.min(1, step / steps)
+        const target = menuTargetVolume()
+        if (menuAudioRef.current && menuAudioSwapRef.current) {
+          menuAudioRef.current.volume = target * (1 - mix)
+          menuAudioSwapRef.current.volume = target * mix
+        }
+
+        if (mix < 1) {
+          return
+        }
+
+        if (menuCrossfadeTimerRef.current !== null) {
+          window.clearInterval(menuCrossfadeTimerRef.current)
+          menuCrossfadeTimerRef.current = null
+        }
+
+        const finished = menuAudioRef.current
+        menuAudioRef.current = menuAudioSwapRef.current
+        menuAudioSwapRef.current = finished
+
+        if (menuAudioSwapRef.current) {
+          menuAudioSwapRef.current.pause()
+          menuAudioSwapRef.current.currentTime = 0
+          menuAudioSwapRef.current.volume = 0
+        }
+
+        if (menuAudioRef.current) {
+          menuAudioRef.current.volume = menuTargetVolume()
+        }
+
+        menuCrossfadingRef.current = false
+      }, MENU_MUSIC_CROSSFADE_STEP_MS)
+    }, MENU_MUSIC_LOOP_CHECK_MS)
+  }, [clearMenuTimers, ensureMenuAudios, menuTargetVolume])
+
+  const stopMenuMusic = useCallback((resetToStart = false) => {
+    clearMenuTimers()
+    menuCrossfadingRef.current = false
+
+    if (menuAudioRef.current) {
+      menuAudioRef.current.pause()
+      if (resetToStart) {
+        menuAudioRef.current.currentTime = 0
+      }
+      menuAudioRef.current.volume = menuTargetVolume()
+    }
+
+    if (menuAudioSwapRef.current) {
+      menuAudioSwapRef.current.pause()
+      if (resetToStart) {
+        menuAudioSwapRef.current.currentTime = 0
+      }
+      menuAudioSwapRef.current.volume = 0
+    }
+  }, [clearMenuTimers, menuTargetVolume])
 
   const generateMap = useCallback(() => {
     const map: TileType[][] = []
@@ -290,7 +434,7 @@ export function useLostWoodsGame() {
       spellReady: true,
       spellCooldownPercent: 100,
       spellCooldownSeconds: 0,
-      overlayVisible: true,
+      paused: false,
       jumpscareVisible: false,
       winVisible: false,
       deathVisible: false,
@@ -1150,6 +1294,11 @@ export function useLostWoodsGame() {
         return
       }
 
+      if (pausedRef.current) {
+        renderFrame(ctx)
+        return
+      }
+
       const player = playerRef.current
       const held = heldRef.current
       const running = held.Shift && player.stamina > 2
@@ -1245,6 +1394,46 @@ export function useLostWoodsGame() {
     resize()
 
     const onKeyDown = (event: KeyboardEvent): void => {
+      if (!event.repeat && event.key === 'Escape') {
+        if (
+          gameStartedRef.current &&
+          !winShownRef.current &&
+          !deathShownRef.current &&
+          !jumpscareActiveRef.current &&
+          !uiRef.current.mainMenuVisible &&
+          !uiRef.current.firstLoadVisible
+        ) {
+          const nextPaused = !pausedRef.current
+          pausedRef.current = nextPaused
+          if (nextPaused) {
+            heldRef.current = {}
+            audioControllerRef.current?.stop()
+            audioControllerRef.current = null
+            playMenuMusic()
+          } else {
+            stopMenuMusic()
+            audioControllerRef.current = createAmbientAudio(
+              () => ({
+                gameStarted: gameStartedRef.current,
+                winShown: winShownRef.current,
+                deathShown: deathShownRef.current,
+                monsters: monstersRef.current,
+                player: playerRef.current,
+              }),
+              mutedRef.current,
+            )
+          }
+          lastTimeRef.current = performance.now()
+          updateUi({ paused: nextPaused })
+          event.preventDefault()
+        }
+        return
+      }
+
+      if (pausedRef.current) {
+        return
+      }
+
       heldRef.current[event.key] = true
       if (!event.repeat && (event.key === 'e' || event.key === 'E' || event.key === ' ')) {
         castSpell()
@@ -1270,18 +1459,73 @@ export function useLostWoodsGame() {
       }
       audioControllerRef.current?.stop()
       audioControllerRef.current = null
+      stopMenuMusic()
+      menuAudioRef.current = null
+      menuAudioSwapRef.current = null
     }
-  }, [castSpell, generateMap, loop])
+  }, [castSpell, generateMap, loop, playMenuMusic, stopMenuMusic])
 
   const startGame = useCallback(() => {
-    if (gameStartedRef.current) {
+    if (gameStartedRef.current || uiRef.current.firstLoadVisible) {
       return
     }
 
+    stopMenuMusic()
     gameStartedRef.current = true
+    pausedRef.current = false
+    heldRef.current = {}
     lastTimeRef.current = performance.now()
-    updateUi({ overlayVisible: false })
+    updateUi({ mainMenuVisible: false, paused: false, hintVisible: true })
 
+    if (!audioControllerRef.current) {
+      audioControllerRef.current = createAmbientAudio(
+        () => ({
+          gameStarted: gameStartedRef.current,
+          winShown: winShownRef.current,
+          deathShown: deathShownRef.current,
+          monsters: monstersRef.current,
+          player: playerRef.current,
+        }),
+        mutedRef.current,
+      )
+    }
+  }, [stopMenuMusic, updateUi])
+
+  const openMainMenu = useCallback(() => {
+    gameStartedRef.current = false
+    pausedRef.current = false
+    heldRef.current = {}
+    lastTimeRef.current = 0
+    jumpscareActiveRef.current = false
+    jumpscareTimerRef.current = 0
+    updateUi({
+      firstLoadVisible: false,
+      mainMenuVisible: true,
+      paused: false,
+      jumpscareVisible: false,
+      winVisible: false,
+      deathVisible: false,
+      hintVisible: true,
+    })
+
+    audioControllerRef.current?.stop()
+    audioControllerRef.current = null
+    playMenuMusic()
+  }, [playMenuMusic, updateUi])
+
+  const enterMainMenu = useCallback(() => {
+    if (!uiRef.current.firstLoadVisible) {
+      return
+    }
+    openMainMenu()
+  }, [openMainMenu])
+
+  const resumeGame = useCallback(() => {
+    if (!pausedRef.current || !gameStartedRef.current) {
+      return
+    }
+
+    stopMenuMusic()
     audioControllerRef.current = createAmbientAudio(
       () => ({
         gameStarted: gameStartedRef.current,
@@ -1292,17 +1536,34 @@ export function useLostWoodsGame() {
       }),
       mutedRef.current,
     )
-  }, [updateUi])
+
+    pausedRef.current = false
+    heldRef.current = {}
+    lastTimeRef.current = performance.now()
+    updateUi({ paused: false })
+  }, [stopMenuMusic, updateUi])
+
+  const backToMainMenu = useCallback(() => {
+    generateMap()
+    openMainMenu()
+  }, [generateMap, openMainMenu])
 
   const restart = useCallback(() => {
     generateMap()
-  }, [generateMap])
+    openMainMenu()
+  }, [generateMap, openMainMenu])
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev
       mutedRef.current = next
       audioControllerRef.current?.setMuted(next)
+      if (menuAudioRef.current) {
+        menuAudioRef.current.volume = next ? 0 : MENU_MUSIC_VOLUME
+      }
+      if (menuAudioSwapRef.current) {
+        menuAudioSwapRef.current.volume = next ? 0 : MENU_MUSIC_VOLUME
+      }
       return next
     })
   }, [])
@@ -1310,6 +1571,12 @@ export function useLostWoodsGame() {
   useEffect(() => {
     mutedRef.current = isMuted
     audioControllerRef.current?.setMuted(isMuted)
+    if (menuAudioRef.current) {
+      menuAudioRef.current.volume = isMuted ? 0 : MENU_MUSIC_VOLUME
+    }
+    if (menuAudioSwapRef.current) {
+      menuAudioSwapRef.current.volume = isMuted ? 0 : MENU_MUSIC_VOLUME
+    }
   }, [isMuted])
 
   return {
@@ -1317,7 +1584,10 @@ export function useLostWoodsGame() {
     ui,
     isMuted,
     toggleMute,
+    enterMainMenu,
     startGame,
+    resumeGame,
+    backToMainMenu,
     restart,
   }
 }

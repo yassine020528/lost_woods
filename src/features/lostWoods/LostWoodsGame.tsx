@@ -25,49 +25,73 @@ const SoundIcon = ({ muted }: { muted: boolean }) => (
 )
 
 export function LostWoodsGame() {
-  const { canvasRef, ui, isMuted, toggleMute, startGame, restart } = useLostWoodsGame()
+  const { canvasRef, ui, isMuted, toggleMute, enterMainMenu, startGame, resumeGame, backToMainMenu, restart } = useLostWoodsGame()
+  const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible
 
   return (
     <main className="lost-woods-root">
       <canvas ref={canvasRef} className="game-canvas" aria-label="Lost Woods game canvas" />
 
-      <div className="game-ui">
-        <div className="keys-display">
-          KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
+      {showHud && (
+        <div className="game-ui">
+          <div className="keys-display">
+            KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
+          </div>
+          <button
+            type="button"
+            className="mute-btn hud-mute-btn"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isMuted ? 'Unmute audio' : 'Mute audio'}
+          >
+            <SoundIcon muted={isMuted} />
+          </button>
+          <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
+            <div className="spell-header">
+              SPELL <span className="spell-keybind">E</span>
+            </div>
+            <div className="spell-track">
+              <div className="spell-fill" style={{ width: `${ui.spellCooldownPercent}%` }} />
+            </div>
+            <div className="spell-status">{ui.spellReady ? 'READY' : `RECHARGING ${ui.spellCooldownSeconds}s`}</div>
+          </div>
         </div>
-        <button
-          type="button"
-          className="mute-btn hud-mute-btn"
-          onClick={toggleMute}
-          aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
-          title={isMuted ? 'Unmute audio' : 'Mute audio'}
+      )}
+
+      {showHud && (
+        <div className="stamina-bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={ui.stamina}>
+          <div className="stamina-label">STAMINA</div>
+          <div className="stamina-track">
+            <div
+              className={`stamina-fill ${staminaClassName(ui.stamina)}`}
+              style={{ width: `${ui.stamina}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>move toward the light</div>}
+
+      {ui.firstLoadVisible && (
+        <section
+          className="first-load-screen"
+          role="button"
+          tabIndex={0}
+          onClick={enterMainMenu}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              enterMainMenu()
+            }
+          }}
         >
-          <SoundIcon muted={isMuted} />
-        </button>
-        <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
-          <div className="spell-header">
-            SPELL <span className="spell-keybind">E</span>
-          </div>
-          <div className="spell-track">
-            <div className="spell-fill" style={{ width: `${ui.spellCooldownPercent}%` }} />
-          </div>
-          <div className="spell-status">{ui.spellReady ? 'READY' : `RECHARGING ${ui.spellCooldownSeconds}s`}</div>
-        </div>
-      </div>
+          <h1>LOST WOODS</h1>
+          <p className="tagline">A HORROR EXPERIENCE</p>
+          <p className="desc">Click anywhere to continue</p>
+        </section>
+      )}
 
-      <div className="stamina-bar" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={ui.stamina}>
-        <div className="stamina-label">STAMINA</div>
-        <div className="stamina-track">
-          <div
-            className={`stamina-fill ${staminaClassName(ui.stamina)}`}
-            style={{ width: `${ui.stamina}%` }}
-          />
-        </div>
-      </div>
-
-      <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>move toward the light</div>
-
-      {ui.overlayVisible && (
+      {ui.mainMenuVisible && (
         <section className="overlay-screen">
           <h1>LOST WOODS</h1>
           <p className="tagline">A HORROR EXPERIENCE</p>
@@ -75,6 +99,7 @@ export function LostWoodsGame() {
           <p className="desc">Use WASD or Arrow Keys to move.</p>
           <p className="desc">Hold Shift to run, but watch your stamina.</p>
           <p className="desc">Press E to cast a purge spell (30s recharge).</p>
+          <p className="desc">Press Esc to pause and resume anytime.</p>
           <p className="sub-desc">Your flashlight is your only friend.</p>
           <p className="warn">You are not alone in these woods.</p>
           <button
@@ -88,6 +113,28 @@ export function LostWoodsGame() {
           </button>
           <button type="button" className="action-btn action-btn-start" onClick={startGame}>
             ENTER THE FOREST
+          </button>
+        </section>
+      )}
+
+      {ui.paused && (
+        <section className="result-screen pause-screen">
+          <h2>PAUSED</h2>
+          <p>Take a breath. The woods can wait.</p>
+          <button
+            type="button"
+            className="mute-btn menu-mute-btn"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isMuted ? 'Unmute audio' : 'Mute audio'}
+          >
+            <SoundIcon muted={isMuted} />
+          </button>
+          <button type="button" className="action-btn action-btn-pause" onClick={resumeGame}>
+            RESUME
+          </button>
+          <button type="button" className="action-btn action-btn-pause" onClick={backToMainMenu}>
+            BACK TO MAIN MENU
           </button>
         </section>
       )}

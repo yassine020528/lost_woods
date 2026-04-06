@@ -50,7 +50,9 @@ export interface GameUiState {
   spellReady: boolean
   spellCooldownPercent: number
   spellCooldownSeconds: number
-  overlayVisible: boolean
+  firstLoadVisible: boolean
+  mainMenuVisible: boolean
+  paused: boolean
   jumpscareVisible: boolean
   winVisible: boolean
   deathVisible: boolean
