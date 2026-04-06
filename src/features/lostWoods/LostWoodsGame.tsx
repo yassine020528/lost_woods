@@ -25,7 +25,8 @@ const SoundIcon = ({ muted }: { muted: boolean }) => (
 )
 
 export function LostWoodsGame() {
-  const { canvasRef, ui, isMuted, toggleMute, enterMainMenu, startGame, resumeGame, backToMainMenu, restart } = useLostWoodsGame()
+  const { canvasRef, ui, isMuted, toggleMute, enterMainMenu, startGame, pauseGame, resumeGame, backToMainMenu, restart } =
+    useLostWoodsGame()
   const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible
 
   return (
@@ -45,6 +46,15 @@ export function LostWoodsGame() {
             title={isMuted ? 'Unmute audio' : 'Mute audio'}
           >
             <SoundIcon muted={isMuted} />
+          </button>
+          <button
+            type="button"
+            className="pause-btn hud-pause-btn"
+            onClick={ui.paused ? resumeGame : pauseGame}
+            aria-label={ui.paused ? 'Resume game (Esc)' : 'Pause game (Esc)'}
+            title={ui.paused ? 'Resume game (Esc)' : 'Pause game (Esc)'}
+          >
+            {ui.paused ? 'RESUME (ESC)' : 'PAUSE (ESC)'}
           </button>
           <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
             <div className="spell-header">
@@ -67,6 +77,7 @@ export function LostWoodsGame() {
               style={{ width: `${ui.stamina}%` }}
             />
           </div>
+          <div className="sprint-hint">hold Shift to sprint</div>
         </div>
       )}
 

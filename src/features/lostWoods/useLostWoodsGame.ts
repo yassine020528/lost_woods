@@ -1405,6 +1405,7 @@ export function useLostWoodsGame() {
         ) {
           const nextPaused = !pausedRef.current
           pausedRef.current = nextPaused
+
           if (nextPaused) {
             heldRef.current = {}
             audioControllerRef.current?.stop()
@@ -1423,10 +1424,11 @@ export function useLostWoodsGame() {
               mutedRef.current,
             )
           }
+
           lastTimeRef.current = performance.now()
           updateUi({ paused: nextPaused })
-          event.preventDefault()
         }
+        event.preventDefault()
         return
       }
 
@@ -1463,7 +1465,7 @@ export function useLostWoodsGame() {
       menuAudioRef.current = null
       menuAudioSwapRef.current = null
     }
-  }, [castSpell, generateMap, loop, playMenuMusic, stopMenuMusic])
+  }, [castSpell, generateMap, loop, playMenuMusic, stopMenuMusic, updateUi])
 
   const startGame = useCallback(() => {
     if (gameStartedRef.current || uiRef.current.firstLoadVisible) {
@@ -1519,6 +1521,28 @@ export function useLostWoodsGame() {
     }
     openMainMenu()
   }, [openMainMenu])
+
+  const pauseGame = useCallback(() => {
+    if (
+      pausedRef.current ||
+      !gameStartedRef.current ||
+      winShownRef.current ||
+      deathShownRef.current ||
+      jumpscareActiveRef.current ||
+      uiRef.current.mainMenuVisible ||
+      uiRef.current.firstLoadVisible
+    ) {
+      return
+    }
+
+    pausedRef.current = true
+    heldRef.current = {}
+    audioControllerRef.current?.stop()
+    audioControllerRef.current = null
+    playMenuMusic()
+    lastTimeRef.current = performance.now()
+    updateUi({ paused: true })
+  }, [playMenuMusic, updateUi])
 
   const resumeGame = useCallback(() => {
     if (!pausedRef.current || !gameStartedRef.current) {
@@ -1586,6 +1610,7 @@ export function useLostWoodsGame() {
     toggleMute,
     enterMainMenu,
     startGame,
+    pauseGame,
     resumeGame,
     backToMainMenu,
     restart,
