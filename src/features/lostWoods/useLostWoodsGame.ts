@@ -75,6 +75,7 @@ export function useLostWoodsGame() {
   const flashRadiusRef = useRef(140)
   const hintTimerRef = useRef(4000)
   const screenFlashRef = useRef(0)
+  const lightningFlashRef = useRef(0)
   const spellCooldownMsRef = useRef(0)
 
   const dimensionsRef = useRef({ width: 0, height: 0 })
@@ -277,6 +278,7 @@ export function useLostWoodsGame() {
     flashRadiusRef.current = 140
     hintTimerRef.current = 4000
     screenFlashRef.current = 0
+    lightningFlashRef.current = 0
     lastTimeRef.current = 0
     spellCooldownMsRef.current = 0
 
@@ -468,7 +470,8 @@ export function useLostWoodsGame() {
       monster.wanderAngle = Math.random() * Math.PI * 2
     })
 
-    screenFlashRef.current = Math.max(screenFlashRef.current, 0.7)
+    lightningFlashRef.current = 1
+    audioControllerRef.current?.playSpellCast()
     spellCooldownMsRef.current = SPELL_COOLDOWN_MS
     updateSpellCooldownUi()
   }, [projectToWalkable, spawnCollectParticles, updateSpellCooldownUi])
@@ -1083,6 +1086,20 @@ export function useLostWoodsGame() {
       ctx.fillStyle = `rgba(200,30,10,${screenFlashRef.current * 0.4})`
       ctx.fillRect(0, 0, width, height)
       screenFlashRef.current = Math.max(0, screenFlashRef.current - 0.2)
+    }
+
+    if (lightningFlashRef.current > 0) {
+      const alpha = Math.min(1, lightningFlashRef.current)
+      ctx.fillStyle = `rgba(205,230,255,${alpha * 0.5})`
+      ctx.fillRect(0, 0, width, height)
+
+      const skyPulse = ctx.createRadialGradient(width / 2, height * 0.2, 20, width / 2, height * 0.2, Math.max(width, height))
+      skyPulse.addColorStop(0, `rgba(235,245,255,${alpha * 0.35})`)
+      skyPulse.addColorStop(1, 'rgba(200,220,255,0)')
+      ctx.fillStyle = skyPulse
+      ctx.fillRect(0, 0, width, height)
+
+      lightningFlashRef.current = Math.max(0, lightningFlashRef.current - 0.16)
     }
   }, [drawFlashlight, drawKeys, drawMap, drawMinimap, drawMonsters, drawParticles, drawPlayer])
 

@@ -4,6 +4,7 @@ export interface AudioController {
   stop: () => void
   playKeyCollect: () => void
   playJumpscare: () => void
+  playSpellCast: () => void
 }
 
 export function createAmbientAudio(getScene: () => {
@@ -321,9 +322,61 @@ export function createAmbientAudio(getScene: () => {
     makeStab(130, 0.28, 0.16)
   }
 
+  const playSpellCast = (): void => {
+    const time = audioCtx.currentTime
+
+    const crackDuration = 0.22
+    const crackSize = Math.max(1, Math.floor(audioCtx.sampleRate * crackDuration))
+    const crackBuffer = audioCtx.createBuffer(1, crackSize, audioCtx.sampleRate)
+    const crackData = crackBuffer.getChannelData(0)
+    for (let i = 0; i < crackSize; i += 1) {
+      crackData[i] = Math.random() * 2 - 1
+    }
+
+    const crackSource = audioCtx.createBufferSource()
+    crackSource.buffer = crackBuffer
+
+    const crackFilter = audioCtx.createBiquadFilter()
+    crackFilter.type = 'highpass'
+    crackFilter.frequency.setValueAtTime(1100, time)
+
+    const crackGain = audioCtx.createGain()
+    crackGain.gain.setValueAtTime(0.001, time)
+    crackGain.gain.exponentialRampToValueAtTime(0.2, time + 0.015)
+    crackGain.gain.exponentialRampToValueAtTime(0.001, time + crackDuration)
+
+    crackSource.connect(crackFilter)
+    crackFilter.connect(crackGain)
+    crackGain.connect(master)
+    crackSource.start(time)
+    crackSource.stop(time + crackDuration + 0.02)
+
+    const rumbleOsc = audioCtx.createOscillator()
+    const rumbleFilter = audioCtx.createBiquadFilter()
+    const rumbleGain = audioCtx.createGain()
+
+    rumbleOsc.type = 'triangle'
+    rumbleOsc.frequency.setValueAtTime(95, time + 0.03)
+    rumbleOsc.frequency.exponentialRampToValueAtTime(42, time + 0.75)
+
+    rumbleFilter.type = 'lowpass'
+    rumbleFilter.frequency.setValueAtTime(220, time)
+
+    rumbleGain.gain.setValueAtTime(0.001, time + 0.02)
+    rumbleGain.gain.exponentialRampToValueAtTime(0.16, time + 0.14)
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, time + 0.95)
+
+    rumbleOsc.connect(rumbleFilter)
+    rumbleFilter.connect(rumbleGain)
+    rumbleGain.connect(master)
+    rumbleOsc.start(time + 0.02)
+    rumbleOsc.stop(time + 1)
+  }
+
   return {
     playKeyCollect,
     playJumpscare,
+    playSpellCast,
     stop: () => {
       timers.forEach((id) => window.clearTimeout(id))
       audioCtx.close().catch(() => {
