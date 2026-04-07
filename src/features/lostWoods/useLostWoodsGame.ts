@@ -610,6 +610,49 @@ export function useLostWoodsGame() {
     }
   }, [updateUi])
 
+  const pushMonstersAwayFromPlayer = useCallback(
+    (minDistance: number, maxDistance: number = minDistance * 1.8) => {
+      const player = playerRef.current
+      const maxRange = Math.max(minDistance + 40, maxDistance)
+
+      monstersRef.current.forEach((monster) => {
+        const currentDist = Math.hypot(monster.x - player.x, monster.y - player.y)
+        if (currentDist >= minDistance) {
+          return
+        }
+
+        let bestX = monster.x
+        let bestY = monster.y
+        let bestDist = currentDist
+
+        for (let attempt = 0; attempt < 12; attempt += 1) {
+          const angle = Math.random() * Math.PI * 2
+          const distance = minDistance + Math.random() * (maxRange - minDistance)
+          const targetX = player.x + Math.cos(angle) * distance
+          const targetY = player.y + Math.sin(angle) * distance
+          const projected = projectToWalkable(targetX, targetY)
+          const projectedDist = Math.hypot(projected.x - player.x, projected.y - player.y)
+
+          if (projectedDist > bestDist) {
+            bestX = projected.x
+            bestY = projected.y
+            bestDist = projectedDist
+          }
+
+          if (projectedDist >= minDistance) {
+            break
+          }
+        }
+
+        monster.x = bestX
+        monster.y = bestY
+        monster.state = 'idle'
+        monster.wanderTimer = 0
+      })
+    },
+    [projectToWalkable],
+  )
+
   const castSpell = useCallback(() => {
     if (
       !gameStartedRef.current ||
@@ -705,24 +748,27 @@ export function useLostWoodsGame() {
           }
         }
 
-        // During spawn protection, push monsters away if they get too close
-        if (spawnProtectionTimerRef.current > 0 && dist < SPAWN_PROTECTION_MIN_MONSTER_DIST) {
-          const angle = Math.atan2(monster.y - player.y, monster.x - player.x)
-          const pushDistance = 3
-          const pushX = monster.x + Math.cos(angle) * pushDistance
-          const pushY = monster.y + Math.sin(angle) * pushDistance
-          if (!solid(pushX, pushY)) {
-            monster.x = pushX
-            monster.y = pushY
+        // During spawn protection, force a safe radius around the player.
+        const postMoveDist = Math.hypot(monster.x - player.x, monster.y - player.y)
+        if (spawnProtectionTimerRef.current > 0 && postMoveDist < SPAWN_PROTECTION_MIN_MONSTER_DIST) {
+          const angle = Math.atan2(monster.y - player.y, monster.x - player.x) || Math.random() * Math.PI * 2
+          const targetX = player.x + Math.cos(angle) * SPAWN_PROTECTION_MIN_MONSTER_DIST
+          const targetY = player.y + Math.sin(angle) * SPAWN_PROTECTION_MIN_MONSTER_DIST
+          const projected = projectToWalkable(targetX, targetY)
+
+          if (Math.hypot(projected.x - player.x, projected.y - player.y) > postMoveDist) {
+            monster.x = projected.x
+            monster.y = projected.y
+            monster.state = 'idle'
           }
         }
 
-        if (dist < 20) {
+        if (postMoveDist < 20) {
           triggerJumpscare()
         }
       })
     },
-    [solid, triggerJumpscare],
+    [projectToWalkable, solid, triggerJumpscare],
   )
 
   const updateParticles = useCallback((dt: number) => {
@@ -1330,15 +1376,8 @@ export function useLostWoodsGame() {
         if (jumpscareTimerRef.current > 900 && jumpscareCountRef.current < 3) {
           jumpscareActiveRef.current = false
           updateUi({ jumpscareVisible: false })
-          monstersRef.current.forEach((monster) => {
-            const angle = Math.random() * Math.PI * 2
-            const distance = 300 + Math.random() * 200
-            const proposedX = playerRef.current.x + Math.cos(angle) * distance
-            const proposedY = playerRef.current.y + Math.sin(angle) * distance
-            const projected = projectToWalkable(proposedX, proposedY)
-            monster.x = projected.x
-            monster.y = projected.y
-          })
+          spawnProtectionTimerRef.current = SPAWN_PROTECTION_DURATION_MS
+          pushMonstersAwayFromPlayer(SPAWN_PROTECTION_MIN_MONSTER_DIST * 1.8, SPELL_RESPAWN_MAX_DIST)
         }
         return
       }
@@ -1427,7 +1466,7 @@ export function useLostWoodsGame() {
       updateParticles(dt)
       renderFrame(ctx)
     },
-    [movePlayer, projectToWalkable, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateSpellCooldownUi, updateUi],
+    [movePlayer, pushMonstersAwayFromPlayer, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateSpellCooldownUi, updateUi],
   )
 
   useEffect(() => {
