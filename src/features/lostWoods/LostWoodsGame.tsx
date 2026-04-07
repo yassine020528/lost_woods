@@ -1,4 +1,5 @@
 import './LostWoodsGame.css'
+import { InfoContent } from './InfoContent'
 import { useLostWoodsGame } from './useLostWoodsGame'
 
 const staminaClassName = (stamina: number): string => {
@@ -171,10 +172,9 @@ export function LostWoodsGame() {
       )}
 
       {ui.mainMenuVisible && ui.currentMenuScreen === 'info' && (
-        <section className="overlay-screen">
-          <h1>INFO</h1>
-          <div className="menu-content">
-            <p className="info-placeholder">Coming soon...</p>
+        <section className="overlay-screen overlay-screen-info">
+          <div className="menu-content menu-content-info">
+            <InfoContent />
           </div>
           <button
             type="button"
@@ -185,7 +185,7 @@ export function LostWoodsGame() {
           >
             <SoundIcon muted={isMuted} />
           </button>
-          <button type="button" className="action-btn action-btn-menu" onClick={goToMainMenu}>
+          <button type="button" className="action-btn action-btn-menu info-back-btn" onClick={goToMainMenu}>
             BACK
           </button>
         </section>
