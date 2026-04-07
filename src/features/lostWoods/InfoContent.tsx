@@ -1,6 +1,6 @@
 export function InfoContent() {
   return (
-    <article className="info-paper" aria-label="Classified archive details">
+    <div className="info-paper" aria-label="Classified archive details">
       <header className="info-masthead">
         <p className="info-edition">ARCHIVE EDITION · RESTRICTED CIRCULATION</p>
         <h2>THE KHOUMIRI GAZETTE</h2>
@@ -64,6 +64,6 @@ export function InfoContent() {
           </p>
         </section>
       </div>
-    </article>
+    </div>
   )
 }
