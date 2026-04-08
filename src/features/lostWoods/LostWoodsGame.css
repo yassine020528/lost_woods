@@ -36,8 +36,8 @@
 .lives-display {
   position: fixed;
   top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 36%;
+  transform: translateX(-200%);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -722,6 +722,7 @@
 
   .lives-display {
     top: 12px;
+    left: 34%;
     gap: 8px;
   }
 

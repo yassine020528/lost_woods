@@ -266,7 +266,7 @@ export function LostWoodsGame() {
         </div>
       )}
 
-      {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>move toward the light</div>}
+      {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>find the keys to open the door</div>}
 
       {ui.introVisible && <IntroAnimation onFinish={finishIntro} />}
 

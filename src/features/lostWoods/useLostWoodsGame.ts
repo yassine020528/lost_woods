@@ -37,7 +37,7 @@ const initialUiState: GameUiState = {
   jumpscareVisible: false,
   winVisible: false,
   deathVisible: false,
-  hintVisible: true,
+  hintVisible: false,
   introVisible: false,
 }
 
@@ -1538,6 +1538,19 @@ export function useLostWoodsGame() {
       const camY = Math.max(0, Math.min(MAP_H * TILE - height, player.y - height / 2))
       cameraRef.current = { x: camX, y: camY }
 
+      const doorCenterX = BUILDING_DOOR_X * TILE + TILE / 2
+      const doorCenterY = BUILDING_DOOR_Y * TILE + TILE / 2
+      if (hintTimerRef.current > 0) {
+        hintTimerRef.current = Math.max(0, hintTimerRef.current - dt)
+      }
+      const timedHintVisible = hintTimerRef.current > 0
+      const nearLockedDoor =
+        uiRef.current.collectedKeys < TOTAL_KEYS && Math.hypot(doorCenterX - player.x, doorCenterY - player.y) < TILE * 2.35
+      const hintVisible = timedHintVisible || nearLockedDoor
+      if (uiRef.current.hintVisible !== hintVisible) {
+        updateUi({ hintVisible })
+      }
+
       keyItemsRef.current.forEach((key) => {
         if (key.collected) {
           return
@@ -1559,13 +1572,6 @@ export function useLostWoodsGame() {
           }
         }
       })
-
-      if (hintTimerRef.current > 0) {
-        hintTimerRef.current -= dt
-        if (hintTimerRef.current <= 0 && uiRef.current.hintVisible) {
-          updateUi({ hintVisible: false })
-        }
-      }
 
       updateMonsters(dt)
       updateParticles(dt)
@@ -1682,6 +1688,7 @@ export function useLostWoodsGame() {
     pausedRef.current = false
     heldRef.current = {}
     lastTimeRef.current = performance.now()
+    hintTimerRef.current = 4000
     updateUi({ introVisible: false, paused: false, hintVisible: true })
 
     startAmbientAudio()
