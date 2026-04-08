@@ -1,6 +1,125 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './LostWoodsGame.css'
 import { InfoContent } from './InfoContent'
 import { useLostWoodsGame } from './useLostWoodsGame'
+
+const INTRO_SLIDES = [
+  {
+    location: 'NORTH AFRICA · KHOUMIRI FOREST',
+    lines: [
+      'A child has been taken.',
+      'Abducted by a cult that believes innocent blood',
+      'can be used in rituals to summon buried treasure.',
+    ],
+  },
+  {
+    location: null,
+    lines: [
+      'They are being held inside an abandoned building',
+      'deep in the forest.',
+      'The door is locked.',
+      'Five keys were scattered across the woods by the fleeing cult.',
+      'Find them all.',
+    ],
+  },
+  {
+    location: null,
+    lines: [
+      'The forest is not empty.',
+      'Dark entities guard these woods.',
+      'Do not shine your flashlight directly at them —',
+      'they will follow you, and they will not stop.',
+    ],
+  },
+  {
+    location: null,
+    lines: [
+      'Before you left, the village elder gave you a spell.',
+      'If a djinn gets too close, cast it.',
+      'It will destroy them.',
+      'Use it wisely — it takes time to recharge.',
+    ],
+  },
+]
+
+const FADE_DURATION_MS = 800
+
+function IntroAnimation({ onFinish }: { onFinish: () => void }) {
+  const [slideIndex, setSlideIndex] = useState(0)
+  const [phase, setPhase] = useState<'in' | 'hold' | 'out'>('in')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const advance = useCallback(() => {
+    if (phase !== 'hold') return
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setPhase('out')
+    timerRef.current = setTimeout(() => {
+      setSlideIndex((i) => {
+        const next = i + 1
+        if (next >= INTRO_SLIDES.length) {
+          onFinish()
+          return i
+        }
+        setPhase('in')
+        timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
+        return next
+      })
+    }, FADE_DURATION_MS)
+  }, [phase, onFinish])
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  const slide = INTRO_SLIDES[slideIndex]
+  const isLast = slideIndex === INTRO_SLIDES.length - 1
+
+  return (
+    <section
+      className="intro-screen"
+      role="button"
+      tabIndex={0}
+      onClick={advance}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance() } }}
+      aria-label="Story introduction, click to advance"
+    >
+      <div className={`intro-slide intro-slide-${phase}`}>
+        {slide.location && (
+          <p className="intro-location">{slide.location}</p>
+        )}
+        <div className="intro-lines">
+          {slide.lines.map((line, i) => (
+            <p
+              key={i}
+              className="intro-line"
+              style={{ animationDelay: `${FADE_DURATION_MS + i * 180}ms` }}
+            >
+              {line || <span>&nbsp;</span>}
+            </p>
+          ))}
+        </div>
+      </div>
+      <div className="intro-controls">
+        <span className="intro-advance-hint">
+          {isLast ? 'ENTER THE FOREST' : 'click to continue'}
+        </span>
+        <button
+          type="button"
+          className="intro-skip-btn"
+          onClick={(e) => { e.stopPropagation(); onFinish() }}
+        >
+          SKIP
+        </button>
+      </div>
+      <div className="intro-progress">
+        {INTRO_SLIDES.map((_, i) => (
+          <span key={i} className={`intro-pip ${i <= slideIndex ? 'intro-pip-active' : ''}`} />
+        ))}
+      </div>
+    </section>
+  )
+}
 
 const staminaClassName = (stamina: number): string => {
   if (stamina > 55) {
@@ -33,6 +152,7 @@ export function LostWoodsGame() {
     toggleMute,
     enterMainMenu,
     startGame,
+    finishIntro,
     pauseGame,
     resumeGame,
     backToMainMenu,
@@ -41,7 +161,7 @@ export function LostWoodsGame() {
     goToInfo,
     goToMainMenu,
   } = useLostWoodsGame()
-  const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible
+  const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible && !ui.introVisible
 
   return (
     <main className="lost-woods-root">
@@ -96,6 +216,8 @@ export function LostWoodsGame() {
       )}
 
       {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>move toward the light</div>}
+
+      {ui.introVisible && <IntroAnimation onFinish={finishIntro} />}
 
       {ui.firstLoadVisible && (
         <section

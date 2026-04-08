@@ -58,4 +58,5 @@ export interface GameUiState {
   winVisible: boolean
   deathVisible: boolean
   hintVisible: boolean
+  introVisible: boolean
 }

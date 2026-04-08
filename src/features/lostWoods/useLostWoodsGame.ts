@@ -33,12 +33,14 @@ const initialUiState: GameUiState = {
   winVisible: false,
   deathVisible: false,
   hintVisible: true,
+  introVisible: false,
 }
 
 const randomInt = (maxExclusive: number): number => Math.floor(Math.random() * maxExclusive)
 const MINIMAP_MARGIN = 16
 const MINIMAP_TOP_MARGIN = 28
 const MINIMAP_MAX_SIZE = 210
+const MINIMAP_RESERVED_CORNER_TILES = Math.ceil((MINIMAP_MAX_SIZE + 30) / TILE)
 const MENU_MUSIC_VOLUME = 0.58
 const MENU_MUSIC_CROSSFADE_SECONDS = 1.2
 const MENU_MUSIC_CROSSFADE_STEP_MS = 50
@@ -55,6 +57,8 @@ const shuffle = <T,>(values: T[]): T[] => {
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
+const isInMinimapReservedCorner = (x: number, y: number): boolean =>
+  x >= MAP_W - 1 - MINIMAP_RESERVED_CORNER_TILES && y <= MINIMAP_RESERVED_CORNER_TILES
 
 export function useLostWoodsGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -271,6 +275,23 @@ export function useLostWoodsGame() {
     }
   }, [clearMenuTimers, menuTargetVolume])
 
+  const startAmbientAudio = useCallback(() => {
+    if (audioControllerRef.current) {
+      return
+    }
+
+    audioControllerRef.current = createAmbientAudio(
+      () => ({
+        gameStarted: gameStartedRef.current,
+        winShown: winShownRef.current,
+        deathShown: deathShownRef.current,
+        monsters: monstersRef.current,
+        player: playerRef.current,
+      }),
+      mutedRef.current,
+    )
+  }, [])
+
   const generateMap = useCallback(() => {
     const map: TileType[][] = []
     const treeData: TreeData[][] = []
@@ -315,6 +336,14 @@ export function useLostWoodsGame() {
     for (let dy = 1; dy <= 6; dy += 1) {
       for (let dx = 1; dx <= 6; dx += 1) {
         map[dy][dx] = 0
+      }
+    }
+
+    for (let y = 1; y < MAP_H - 1; y += 1) {
+      for (let x = 1; x < MAP_W - 1; x += 1) {
+        if (isInMinimapReservedCorner(x, y)) {
+          map[y][x] = 2
+        }
       }
     }
 
@@ -1567,27 +1596,20 @@ export function useLostWoodsGame() {
     }
 
     playUiClick()
-
     stopMenuMusic()
+    startAmbientAudio()
+    updateUi({ mainMenuVisible: false, introVisible: true })
+  }, [playUiClick, startAmbientAudio, stopMenuMusic, updateUi])
+
+  const finishIntro = useCallback(() => {
     gameStartedRef.current = true
     pausedRef.current = false
     heldRef.current = {}
     lastTimeRef.current = performance.now()
-    updateUi({ mainMenuVisible: false, paused: false, hintVisible: true })
+    updateUi({ introVisible: false, paused: false, hintVisible: true })
 
-    if (!audioControllerRef.current) {
-      audioControllerRef.current = createAmbientAudio(
-        () => ({
-          gameStarted: gameStartedRef.current,
-          winShown: winShownRef.current,
-          deathShown: deathShownRef.current,
-          monsters: monstersRef.current,
-          player: playerRef.current,
-        }),
-        mutedRef.current,
-      )
-    }
-  }, [playUiClick, stopMenuMusic, updateUi])
+    startAmbientAudio()
+  }, [startAmbientAudio, updateUi])
 
   const openMainMenu = useCallback(() => {
     gameStartedRef.current = false
@@ -1605,6 +1627,7 @@ export function useLostWoodsGame() {
       winVisible: false,
       deathVisible: false,
       hintVisible: true,
+      introVisible: false,
     })
 
     audioControllerRef.current?.stop()
@@ -1652,22 +1675,13 @@ export function useLostWoodsGame() {
     playUiClick()
 
     stopMenuMusic()
-    audioControllerRef.current = createAmbientAudio(
-      () => ({
-        gameStarted: gameStartedRef.current,
-        winShown: winShownRef.current,
-        deathShown: deathShownRef.current,
-        monsters: monstersRef.current,
-        player: playerRef.current,
-      }),
-      mutedRef.current,
-    )
+    startAmbientAudio()
 
     pausedRef.current = false
     heldRef.current = {}
     lastTimeRef.current = performance.now()
     updateUi({ paused: false })
-  }, [playUiClick, stopMenuMusic, updateUi])
+  }, [playUiClick, startAmbientAudio, stopMenuMusic, updateUi])
 
   const backToMainMenu = useCallback(() => {
     playUiClick()
@@ -1730,6 +1744,7 @@ export function useLostWoodsGame() {
     toggleMute,
     enterMainMenu,
     startGame,
+    finishIntro,
     pauseGame,
     resumeGame,
     backToMainMenu,
