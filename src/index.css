@@ -22,4 +22,7 @@ body,
 
 body {
   overflow: hidden;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
 }
