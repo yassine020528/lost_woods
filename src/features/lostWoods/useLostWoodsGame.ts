@@ -458,12 +458,14 @@ export function useLostWoodsGame() {
     }
 
     const monsters: Monster[] = []
-    const monsterCandidates = shuffle([...allReachable]).filter(
-      ([x, y]) => Math.hypot(x - 3, y - 3) >= MONSTER_MIN_SPAWN_DIST_FROM_PLAYER,
-    )
+    const spawnTileX = 3
+    const spawnTileY = 3
+    const randomReachable = shuffle([...allReachable])
+    const monsterCandidates = [...randomReachable]
+      .filter(([x, y]) => Math.hypot(x - spawnTileX, y - spawnTileY) >= MONSTER_MIN_SPAWN_DIST_FROM_PLAYER)
 
     for (let i = 0; i < MONSTER_COUNT; i += 1) {
-      const fallback = allReachable[i % allReachable.length] ?? [3, 3]
+      const fallback = randomReachable[i % randomReachable.length] ?? [spawnTileX, spawnTileY]
       const [mx, my] = monsterCandidates[i] ?? fallback
 
       monsters.push({
@@ -486,8 +488,8 @@ export function useLostWoodsGame() {
     particlesRef.current = []
 
     playerRef.current = {
-      x: 3 * TILE + TILE / 2,
-      y: 3 * TILE + TILE / 2,
+      x: spawnTileX * TILE + TILE / 2,
+      y: spawnTileY * TILE + TILE / 2,
       angle: 0,
       stamina: 100,
       speed: 2.3,
@@ -533,32 +535,37 @@ export function useLostWoodsGame() {
     return map[ty][tx] > 0
   }, [])
 
+  const canOccupy = useCallback(
+    (x: number, y: number, margin: number): boolean =>
+      !solid(x + margin, y + margin) &&
+      !solid(x + margin, y - margin) &&
+      !solid(x - margin, y + margin) &&
+      !solid(x - margin, y - margin),
+    [solid],
+  )
+
+  const moveWithCollision = useCallback(
+    (entity: { x: number; y: number }, dx: number, dy: number, margin: number) => {
+      const nx = entity.x + dx
+      const ny = entity.y + dy
+
+      if (canOccupy(nx, entity.y, margin)) {
+        entity.x = nx
+      }
+
+      if (canOccupy(entity.x, ny, margin)) {
+        entity.y = ny
+      }
+    },
+    [canOccupy],
+  )
+
   const movePlayer = useCallback(
     (dx: number, dy: number) => {
       const player = playerRef.current
-      const margin = 15
-      const nx = player.x + dx
-      const ny = player.y + dy
-
-      if (
-        !solid(nx + margin, player.y + margin) &&
-        !solid(nx + margin, player.y - margin) &&
-        !solid(nx - margin, player.y + margin) &&
-        !solid(nx - margin, player.y - margin)
-      ) {
-        player.x = nx
-      }
-
-      if (
-        !solid(player.x + margin, ny + margin) &&
-        !solid(player.x + margin, ny - margin) &&
-        !solid(player.x - margin, ny + margin) &&
-        !solid(player.x - margin, ny - margin)
-      ) {
-        player.y = ny
-      }
+      moveWithCollision(player, dx, dy, 15)
     },
-    [solid],
+    [moveWithCollision],
   )
 
   const projectToWalkable = useCallback((wx: number, wy: number): { x: number; y: number } => {
@@ -751,41 +758,24 @@ export function useLostWoodsGame() {
 
       monsters.forEach((monster) => {
         const dist = Math.hypot(monster.x - player.x, monster.y - player.y)
+        const monsterMargin = 15
         monster.wanderTimer -= dt
 
         if (dist < monster.alertR) {
           monster.state = 'chase'
           const angle = Math.atan2(player.y - monster.y, player.x - monster.x)
           const speed = monster.speed * (1 + (1 - dist / monster.alertR) * 2)
-          const nx = monster.x + Math.cos(angle) * speed
-          const ny = monster.y + Math.sin(angle) * speed
-
-          if (!solid(nx, ny)) {
-            monster.x = nx
-            monster.y = ny
-          } else {
-            const nx2 = monster.x + Math.cos(angle) * speed
-            if (!solid(nx2, monster.y)) {
-              monster.x = nx2
-            } else {
-              const ny2 = monster.y + Math.sin(angle) * speed
-              if (!solid(monster.x, ny2)) {
-                monster.y = ny2
-              }
-            }
-          }
+          moveWithCollision(monster, Math.cos(angle) * speed, Math.sin(angle) * speed, monsterMargin)
         } else {
           monster.state = 'idle'
           if (monster.wanderTimer <= 0) {
             monster.wanderAngle += (Math.random() - 0.5) * 1.8
             monster.wanderTimer = 80 + Math.random() * 140
           }
-          const nx = monster.x + Math.cos(monster.wanderAngle) * 0.45
-          const ny = monster.y + Math.sin(monster.wanderAngle) * 0.45
-          if (!solid(nx, ny)) {
-            monster.x = nx
-            monster.y = ny
-          } else {
+          const prevX = monster.x
+          const prevY = monster.y
+          moveWithCollision(monster, Math.cos(monster.wanderAngle) * 0.45, Math.sin(monster.wanderAngle) * 0.45, monsterMargin)
+          if (monster.x === prevX && monster.y === prevY) {
             monster.wanderAngle += Math.PI * (0.5 + Math.random())
           }
         }
@@ -810,7 +800,7 @@ export function useLostWoodsGame() {
         }
       })
     },
-    [projectToWalkable, solid, triggerJumpscare],
+    [moveWithCollision, projectToWalkable, triggerJumpscare],
   )
 
   const updateParticles = useCallback((dt: number) => {
