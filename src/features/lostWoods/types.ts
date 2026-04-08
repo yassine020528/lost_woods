@@ -1,4 +1,4 @@
-export type TileType = 0 | 1 | 2
+export type TileType = 0 | 1 | 2 | 3
 
 export interface TreeData {
   trunkW: number

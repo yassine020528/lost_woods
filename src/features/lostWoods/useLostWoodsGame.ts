@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  BUILDING_DOOR_X,
+  BUILDING_DOOR_Y,
   KEY_MIN_SPACING_STEPS,
   MAP_H,
   MAP_W,
@@ -343,6 +345,17 @@ export function useLostWoodsGame() {
       for (let x = 1; x < MAP_W - 1; x += 1) {
         if (isInMinimapReservedCorner(x, y)) {
           map[y][x] = 2
+        }
+      }
+    }
+
+    map[BUILDING_DOOR_Y][BUILDING_DOOR_X] = 3
+    for (let dy = 1; dy <= 3; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        const px = BUILDING_DOOR_X + dx
+        const py = BUILDING_DOOR_Y + dy
+        if (px > 0 && px < MAP_W - 1 && py > 0 && py < MAP_H - 1 && !isInMinimapReservedCorner(px, py)) {
+          map[py][px] = 0
         }
       }
     }
@@ -863,6 +876,66 @@ export function useLostWoodsGame() {
     }
   }, [])
 
+  const drawLockedDoor = useCallback((ctx: CanvasRenderingContext2D, sx: number, sy: number) => {
+    ctx.save()
+
+    ctx.fillStyle = '#090d07'
+    ctx.fillRect(sx, sy, TILE, TILE)
+
+    ctx.fillStyle = '#17120d'
+    ctx.fillRect(sx + 4, sy + 2, TILE - 8, TILE - 4)
+
+    ctx.fillStyle = '#2f241b'
+    ctx.fillRect(sx + 9, sy + 4, TILE - 18, TILE - 8)
+
+    ctx.fillStyle = '#4b3828'
+    for (let i = 0; i < 4; i += 1) {
+      const plankX = sx + 11 + i * 8
+      ctx.fillRect(plankX, sy + 6, 6, TILE - 12)
+    }
+
+    ctx.fillStyle = '#241a13'
+    ctx.fillRect(sx + 12, sy + 14, TILE - 24, 5)
+    ctx.fillRect(sx + 10, sy + 31, TILE - 20, 5)
+
+    ctx.strokeStyle = '#7d674f'
+    ctx.lineWidth = 2.2
+    ctx.beginPath()
+    ctx.moveTo(sx + 14, sy + 22)
+    ctx.lineTo(sx + TILE / 2, sy + 16)
+    ctx.lineTo(sx + TILE - 14, sy + 24)
+    ctx.stroke()
+
+    ctx.beginPath()
+    ctx.moveTo(sx + 14, sy + 26)
+    ctx.lineTo(sx + TILE / 2, sy + 32)
+    ctx.lineTo(sx + TILE - 14, sy + 24)
+    ctx.stroke()
+
+    ctx.fillStyle = '#98733d'
+    ctx.fillRect(sx + TILE / 2 - 5, sy + 20, 10, 12)
+    ctx.fillStyle = '#3a260d'
+    ctx.fillRect(sx + TILE / 2 - 2, sy + 24, 4, 8)
+
+    ctx.fillStyle = '#1d130d'
+    ctx.fillRect(sx + 7, sy + TILE - 6, TILE - 14, 4)
+
+    ctx.strokeStyle = 'rgba(12, 18, 8, 0.6)'
+    ctx.lineWidth = 1
+    for (let i = 0; i < 4; i += 1) {
+      const grooveX = sx + 17 + i * 8
+      ctx.beginPath()
+      ctx.moveTo(grooveX, sy + 7)
+      ctx.lineTo(grooveX, sy + TILE - 7)
+      ctx.stroke()
+    }
+
+    ctx.fillStyle = 'rgba(110, 150, 70, 0.16)'
+    ctx.fillRect(sx + 9, sy + 5, TILE - 18, 6)
+
+    ctx.restore()
+  }, [])
+
   const drawMap = useCallback((ctx: CanvasRenderingContext2D) => {
     const { width, height } = dimensionsRef.current
     const { x: camX, y: camY } = cameraRef.current
@@ -884,6 +957,8 @@ export function useLostWoodsGame() {
 
         if (map[ty][tx] === 0) {
           drawGround(ctx, tx, ty, sx, sy)
+        } else if (map[ty][tx] === 3) {
+          drawLockedDoor(ctx, sx, sy)
         } else {
           ctx.fillStyle = (tx + ty) % 2 === 0 ? '#0a1407' : '#091206'
           ctx.fillRect(sx, sy, TILE, TILE)
@@ -901,14 +976,14 @@ export function useLostWoodsGame() {
 
     for (let ty = startTY; ty < endTY; ty += 1) {
       for (let tx = startTX; tx < endTX; tx += 1) {
-        if (map[ty][tx] > 0) {
+        if (map[ty][tx] > 0 && map[ty][tx] !== 3) {
           const sx = tx * TILE - camX
           const sy = ty * TILE - camY
           drawTree(ctx, sx, sy, treeData[ty][tx])
         }
       }
     }
-  }, [drawGround, drawTree])
+  }, [drawGround, drawLockedDoor, drawTree])
 
   const drawKeys = useCallback((ctx: CanvasRenderingContext2D) => {
     const { x: camX, y: camY } = cameraRef.current
@@ -1296,10 +1371,16 @@ export function useLostWoodsGame() {
 
     for (let y = 0; y < MAP_H; y += 1) {
       for (let x = 0; x < MAP_W; x += 1) {
-        ctx.fillStyle = map[y][x] === 0 ? '#153016' : '#061006'
+        ctx.fillStyle = map[y][x] === 0 ? '#153016' : map[y][x] === 3 ? '#5a4224' : '#061006'
         ctx.fillRect(x * TILE * scale, y * TILE * scale, Math.max(1, TILE * scale), Math.max(1, TILE * scale))
       }
     }
+
+    const doorSize = Math.max(4, TILE * scale * 0.55)
+    const doorX = BUILDING_DOOR_X * TILE * scale + (TILE * scale - doorSize) / 2
+    const doorY = BUILDING_DOOR_Y * TILE * scale + (TILE * scale - doorSize) / 2
+    ctx.fillStyle = '#00ff66'
+    ctx.fillRect(doorX, doorY, doorSize, doorSize)
 
     keyItemsRef.current.forEach((key) => {
       if (key.collected) {

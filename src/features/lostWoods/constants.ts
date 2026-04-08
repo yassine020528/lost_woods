@@ -1,6 +1,8 @@
 export const TILE = 52
 export const MAP_W = 42
 export const MAP_H = 42
+export const BUILDING_DOOR_X = Math.floor(MAP_W / 2)
+export const BUILDING_DOOR_Y = 0
 export const TOTAL_KEYS = 5
 export const MONSTER_COUNT = 5
 export const MONSTER_MIN_SPAWN_DIST_FROM_PLAYER = 8
