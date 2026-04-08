@@ -49,6 +49,28 @@ const DEATH_LINES = [
   'In the dark beyond the trees, the sacrifice was completed.',
   'Now the forest keeps what remains of both of you.',
 ]
+const SAVED_BABY_SLIDES = [
+  {
+    location: null,
+    lines: [],
+  },
+  {
+    location: null,
+    lines: [
+      'You found the crib in the final room.',
+      'You pulled the baby out before the ritual could be completed.',
+      'For one child, the nightmare ended here.',
+    ],
+  },
+  {
+    location: null,
+    lines: [
+      'Hundreds of children disappear across North Africa.',
+      'Some are targeted through trafficking, ritual abuse,',
+      'or violence justified through witchcraft beliefs and superstition.',
+    ],
+  },
+]
 
 function IntroAnimation({ onFinish }: { onFinish: () => void }) {
   const [slideIndex, setSlideIndex] = useState(0)
@@ -161,6 +183,96 @@ function DeathAnimation({ onFinish }: { onFinish: () => void }) {
   )
 }
 
+function SavedBabyAnimation({ onFinish }: { onFinish: () => void }) {
+  const [slideIndex, setSlideIndex] = useState(0)
+  const [phase, setPhase] = useState<'in' | 'hold' | 'out'>('in')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const slide = SAVED_BABY_SLIDES[slideIndex]
+  const isLast = slideIndex === SAVED_BABY_SLIDES.length - 1
+
+  const advance = useCallback(() => {
+    if (phase !== 'hold' || isLast) {
+      return
+    }
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setPhase('out')
+    timerRef.current = setTimeout(() => {
+      setSlideIndex((current) => {
+        const next = Math.min(current + 1, SAVED_BABY_SLIDES.length - 1)
+        setPhase('in')
+        timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
+        return next
+      })
+    }, FADE_DURATION_MS)
+  }, [isLast, phase])
+
+  useEffect(() => {
+    timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  return (
+    <section
+      className="intro-screen saved-baby-screen"
+      role={isLast ? undefined : 'button'}
+      tabIndex={0}
+      onClick={advance}
+      onKeyDown={(e) => {
+        if (isLast) {
+          return
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          advance()
+        }
+      }}
+      aria-label="Baby rescue ending, click to advance"
+    >
+      <div className="intro-slide intro-slide-hold death-intro-slide saved-baby-slide">
+        <h2 className="death-title saved-baby-title saved-baby-title-static">YOU SAVED THE BABY</h2>
+        <div className="intro-lines saved-baby-lines">
+          <div className={`saved-baby-body intro-slide intro-slide-${phase}`}>
+            {slide.location && <p className="intro-location saved-baby-location">{slide.location}</p>}
+            {slide.lines.map((line, i) => (
+              <p
+                key={i}
+                className="intro-line death-line saved-baby-line"
+                style={{ animationDelay: `${FADE_DURATION_MS + i * 220}ms` }}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className={`intro-controls death-controls saved-baby-controls ${isLast && phase === 'hold' ? 'death-controls-visible' : 'death-controls-hidden'}`}>
+        <button
+          type="button"
+          className="action-btn action-btn-save"
+          onClick={(e) => {
+            e.stopPropagation()
+            onFinish()
+          }}
+        >
+          MAIN MENU
+        </button>
+      </div>
+      {!isLast && phase === 'hold' && (
+        <div className="intro-controls saved-baby-advance-controls">
+          <span className="intro-advance-hint">click to continue</span>
+        </div>
+      )}
+      <div className="intro-progress">
+        {SAVED_BABY_SLIDES.map((_, i) => (
+          <span key={i} className={`intro-pip ${i <= slideIndex ? 'intro-pip-active' : ''}`} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 const staminaClassName = (stamina: number): string => {
   if (stamina > 55) {
     return 'stamina-good'
@@ -196,12 +308,19 @@ export function LostWoodsGame() {
     pauseGame,
     resumeGame,
     backToMainMenu,
-    restart,
     goToControls,
     goToInfo,
     goToMainMenu,
   } = useLostWoodsGame()
-  const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible && !ui.introVisible
+  const showHud =
+    !ui.firstLoadVisible &&
+    !ui.mainMenuVisible &&
+    !ui.introVisible &&
+    !ui.enteringBuilding &&
+    !ui.savedBabyTransitionVisible &&
+    !ui.deathVisible &&
+    !ui.savedBabyVisible
+  const showOutdoorHud = showHud && !ui.buildingVisible
   const lifeIcons = Array.from({ length: ui.totalLives }, (_, index) => index < ui.lives)
 
   return (
@@ -210,9 +329,11 @@ export function LostWoodsGame() {
 
       {showHud && (
         <div className="game-ui">
-          <div className="keys-display">
-            KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
-          </div>
+          {showOutdoorHud && (
+            <div className="keys-display">
+              KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
+            </div>
+          )}
           <div className="lives-display" aria-label={`${ui.lives} of ${ui.totalLives} lives remaining`}>
             <span className="lives-label">LIVES</span>
             <div className="lives-icons" aria-hidden="true">
@@ -241,15 +362,17 @@ export function LostWoodsGame() {
           >
             {ui.paused ? 'RESUME (ESC)' : 'PAUSE (ESC)'}
           </button>
-          <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
-            <div className="spell-header">
-              SPELL <span className="spell-keybind">E</span>
+          {showOutdoorHud && (
+            <div className={`spell-panel ${ui.spellReady ? 'spell-ready' : 'spell-cooling'}`}>
+              <div className="spell-header">
+                SPELL <span className="spell-keybind">E</span>
+              </div>
+              <div className="spell-track">
+                <div className="spell-fill" style={{ width: `${ui.spellCooldownPercent}%` }} />
+              </div>
+              <div className="spell-status">{ui.spellReady ? 'READY' : `RECHARGING ${ui.spellCooldownSeconds}s`}</div>
             </div>
-            <div className="spell-track">
-              <div className="spell-fill" style={{ width: `${ui.spellCooldownPercent}%` }} />
-            </div>
-            <div className="spell-status">{ui.spellReady ? 'READY' : `RECHARGING ${ui.spellCooldownSeconds}s`}</div>
-          </div>
+          )}
         </div>
       )}
 
@@ -266,7 +389,7 @@ export function LostWoodsGame() {
         </div>
       )}
 
-      {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>find the keys to open the door</div>}
+      {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>{ui.hintText}</div>}
 
       {ui.introVisible && <IntroAnimation onFinish={finishIntro} />}
 
@@ -322,7 +445,7 @@ export function LostWoodsGame() {
           <div className="menu-content">
             <p className="control-item"><span className="control-key">WASD / Arrow Keys</span> - Move around the forest</p>
             <p className="control-item"><span className="control-key">Shift</span> - Sprint (consumes stamina)</p>
-            <p className="control-item"><span className="control-key">E</span> - Cast purge spell (30s cooldown)</p>
+            <p className="control-item"><span className="control-key">E</span> - Cast purge spell outdoors / save the baby indoors</p>
             <p className="control-item"><span className="control-key">Esc</span> - Pause and resume game</p>
             <p className="control-item separator">OBJECTIVE</p>
             <p className="control-item">Collect all 5 keys hidden in the forest</p>
@@ -392,18 +515,24 @@ export function LostWoodsGame() {
         </section>
       )}
 
-      {ui.winVisible && (
-        <section className="result-screen win-screen">
-          <h2>YOU ESCAPED</h2>
-          <p>The forest releases you for now.</p>
-          <button type="button" className="action-btn action-btn-win" onClick={restart}>
-            PLAY AGAIN
-          </button>
+      {ui.enteringBuilding && (
+        <section className="building-transition-screen" aria-label="Entering the abandoned building">
+          <div className="building-transition-fade" />
+        </section>
+      )}
+
+      {ui.savedBabyTransitionVisible && (
+        <section className="saved-baby-transition-screen" aria-label="Saving the baby">
+          <div className="saved-baby-transition-fade" />
         </section>
       )}
 
       {ui.deathVisible && (
         <DeathAnimation onFinish={backToMainMenu} />
+      )}
+
+      {ui.savedBabyVisible && (
+        <SavedBabyAnimation onFinish={backToMainMenu} />
       )}
     </main>
   )

@@ -1,7 +1,7 @@
 import type { Monster, Player } from './types'
 
 export interface AudioController {
-  stop: () => void
+  stop: (fadeOutMs?: number) => void
   setMuted: (muted: boolean) => void
   playKeyCollect: () => void
   playJumpscare: () => void
@@ -22,6 +22,7 @@ export function createAmbientAudio(getScene: () => {
 
   const audioCtx = new AudioContextCtor()
   const timers: number[] = []
+  let stopped = false
 
   const registerTimeout = (cb: () => void, ms: number): void => {
     const id = window.setTimeout(cb, ms)
@@ -388,11 +389,29 @@ export function createAmbientAudio(getScene: () => {
     playKeyCollect,
     playJumpscare,
     playSpellCast,
-    stop: () => {
+    stop: (fadeOutMs = 0) => {
+      if (stopped) {
+        return
+      }
+      stopped = true
       timers.forEach((id) => window.clearTimeout(id))
-      audioCtx.close().catch(() => {
-        // Ignore close errors for browsers that already closed the context.
-      })
+
+      const closeContext = (): void => {
+        audioCtx.close().catch(() => {
+          // Ignore close errors for browsers that already closed the context.
+        })
+      }
+
+      if (fadeOutMs > 0) {
+        const now = audioCtx.currentTime
+        master.gain.cancelScheduledValues(now)
+        master.gain.setValueAtTime(master.gain.value, now)
+        master.gain.linearRampToValueAtTime(0, now + fadeOutMs / 1000)
+        window.setTimeout(closeContext, fadeOutMs + 60)
+        return
+      }
+
+      closeContext()
     },
   }
 }

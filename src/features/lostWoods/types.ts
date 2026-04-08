@@ -57,8 +57,13 @@ export interface GameUiState {
   currentMenuScreen: 'main' | 'controls' | 'info'
   paused: boolean
   jumpscareVisible: boolean
-  winVisible: boolean
   deathVisible: boolean
+  doorUnlocked: boolean
+  enteringBuilding: boolean
+  buildingVisible: boolean
   hintVisible: boolean
+  hintText: string
   introVisible: boolean
+  savedBabyTransitionVisible: boolean
+  savedBabyVisible: boolean
 }
