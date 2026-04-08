@@ -82,6 +82,17 @@ const shuffle = <T,>(values: T[]): T[] => {
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
 const isInMinimapReservedCorner = (x: number, y: number): boolean =>
   x >= MAP_W - 1 - MINIMAP_RESERVED_CORNER_TILES && y <= MINIMAP_RESERVED_CORNER_TILES
+const normalizeHeldKey = (event: KeyboardEvent): string => {
+  if (event.key === ' ') {
+    return 'Space'
+  }
+
+  if (event.key.length === 1) {
+    return event.key.toLowerCase()
+  }
+
+  return event.key
+}
 
 export function useLostWoodsGame() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -2732,16 +2743,16 @@ export function useLostWoodsGame() {
       let dx = 0
       let dy = 0
 
-      if (held.ArrowUp || held.w || held.W) {
+      if (held.ArrowUp || held.w) {
         dy -= speed
       }
-      if (held.ArrowDown || held.s || held.S) {
+      if (held.ArrowDown || held.s) {
         dy += speed
       }
-      if (held.ArrowLeft || held.a || held.A) {
+      if (held.ArrowLeft || held.a) {
         dx -= speed
       }
-      if (held.ArrowRight || held.d || held.D) {
+      if (held.ArrowRight || held.d) {
         dx += speed
       }
 
@@ -2930,10 +2941,11 @@ export function useLostWoodsGame() {
         return
       }
 
-      heldRef.current[event.key] = true
+      const normalizedKey = normalizeHeldKey(event)
+      heldRef.current[normalizedKey] = true
       if (
         !event.repeat &&
-        (event.key === DEBUG_FORCE_BUILDING_KEY || event.key === DEBUG_FORCE_BUILDING_KEY.toUpperCase()) &&
+        normalizedKey === DEBUG_FORCE_BUILDING_KEY &&
         !uiRef.current.buildingVisible &&
         !uiRef.current.enteringBuilding &&
         !uiRef.current.mainMenuVisible &&
@@ -2943,17 +2955,17 @@ export function useLostWoodsGame() {
         return
       }
 
-      if (!event.repeat && (event.key === 'e' || event.key === 'E')) {
+      if (!event.repeat && normalizedKey === 'e') {
         saveBaby()
         castSpell()
       }
 
-      if (!event.repeat && event.key === ' ') {
+      if (!event.repeat && normalizedKey === 'Space') {
         castSpell()
       }
     }
     const onKeyUp = (event: KeyboardEvent): void => {
-      heldRef.current[event.key] = false
+      heldRef.current[normalizeHeldKey(event)] = false
     }
 
     window.addEventListener('resize', resize)
