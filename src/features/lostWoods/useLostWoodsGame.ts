@@ -96,6 +96,8 @@ export function useLostWoodsGame() {
   const screenFlashRef = useRef(0)
   const lightningFlashRef = useRef(0)
   const spellCooldownMsRef = useRef(0)
+  const playerWalkCycleRef = useRef(0)
+  const playerMovingRef = useRef(false)
 
   const dimensionsRef = useRef({ width: 0, height: 0 })
   const audioControllerRef = useRef<AudioController | null>(null)
@@ -513,6 +515,8 @@ export function useLostWoodsGame() {
     lightningFlashRef.current = 0
     lastTimeRef.current = 0
     spellCooldownMsRef.current = 0
+    playerWalkCycleRef.current = 0
+    playerMovingRef.current = false
 
     updateUi({
       collectedKeys: 0,
@@ -1225,7 +1229,7 @@ export function useLostWoodsGame() {
     ctx.ellipse(1, 12, 10, 5, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    const legBob = Math.sin(tickRef.current * 0.25) * 4
+    const legBob = playerMovingRef.current ? Math.sin(playerWalkCycleRef.current) * 4 : 0
     ctx.fillStyle = '#1e1208'
     ctx.fillRect(-5, 4, 4, 12 + legBob)
     ctx.fillRect(1, 4, 4, 12 - legBob)
@@ -1521,10 +1525,13 @@ export function useLostWoodsGame() {
         const len = Math.hypot(dx, dy)
         movePlayer((dx / len) * speed, (dy / len) * speed)
         player.angle = Math.atan2(dy, dx)
+        playerMovingRef.current = true
+        playerWalkCycleRef.current += running ? 0.42 : 0.28
         if (running) {
           player.stamina = Math.max(0, player.stamina - dt * 0.09)
         }
       } else {
+        playerMovingRef.current = false
         player.stamina = Math.min(100, player.stamina + dt * 0.035)
       }
 
