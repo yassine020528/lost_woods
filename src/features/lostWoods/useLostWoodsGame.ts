@@ -61,9 +61,6 @@ const INDOOR_AMBIENT_CROSSFADE_SECONDS = 1.35
 const INDOOR_AMBIENT_CROSSFADE_STEP_MS = 50
 const INDOOR_AMBIENT_LOOP_CHECK_MS = 140
 const BABY_CRYING_VOLUME = 0.42
-const BABY_CRYING_CROSSFADE_SECONDS = 1.5
-const BABY_CRYING_CROSSFADE_STEP_MS = 50
-const BABY_CRYING_LOOP_CHECK_MS = 140
 const DEBUG_FORCE_BUILDING_KEY = 'b'
 const BABY_CRIB_TILE = { x: 21, y: 4 }
 const BABY_RESCUE_DISTANCE = TILE * 1.05
@@ -247,12 +244,14 @@ export function useLostWoodsGame() {
   const ensureBabyCryingAudios = useCallback(() => {
     if (!babyCryingAudioRef.current) {
       const babyCryingAudio = new Audio('/baby_crying.mp3')
+      babyCryingAudio.loop = true
       babyCryingAudio.preload = 'auto'
       babyCryingAudioRef.current = babyCryingAudio
     }
 
     if (!babyCryingSwapRef.current) {
       const babyCryingSwap = new Audio('/baby_crying.mp3')
+      babyCryingSwap.loop = true
       babyCryingSwap.preload = 'auto'
       babyCryingSwapRef.current = babyCryingSwap
     }
@@ -547,63 +546,6 @@ export function useLostWoodsGame() {
     }
   }, [clearIndoorAmbientTimers])
 
-  const beginBabyCryingCrossfade = useCallback(() => {
-    const active = babyCryingAudioRef.current
-    const standby = babyCryingSwapRef.current
-    if (!active || !standby || babyCryingCrossfadingRef.current || !witchRoomAudioActiveRef.current) {
-      return
-    }
-
-    babyCryingCrossfadingRef.current = true
-    standby.currentTime = 0
-    standby.volume = 0
-
-    void standby.play().catch(() => {
-      // Fallback: if the swap instance can't start, keep the active one looping.
-      active.currentTime = 0
-      active.volume = babyCryingTargetVolume()
-      babyCryingCrossfadingRef.current = false
-    })
-
-    const steps = Math.max(1, Math.floor((BABY_CRYING_CROSSFADE_SECONDS * 1000) / BABY_CRYING_CROSSFADE_STEP_MS))
-    let step = 0
-
-    babyCryingCrossfadeTimerRef.current = window.setInterval(() => {
-      step += 1
-      const mix = Math.min(1, step / steps)
-      const target = babyCryingTargetVolume()
-      if (babyCryingAudioRef.current && babyCryingSwapRef.current) {
-        babyCryingAudioRef.current.volume = target * (1 - mix)
-        babyCryingSwapRef.current.volume = target * mix
-      }
-
-      if (mix < 1) {
-        return
-      }
-
-      if (babyCryingCrossfadeTimerRef.current !== null) {
-        window.clearInterval(babyCryingCrossfadeTimerRef.current)
-        babyCryingCrossfadeTimerRef.current = null
-      }
-
-      const finished = babyCryingAudioRef.current
-      babyCryingAudioRef.current = babyCryingSwapRef.current
-      babyCryingSwapRef.current = finished
-
-      if (babyCryingSwapRef.current) {
-        babyCryingSwapRef.current.pause()
-        babyCryingSwapRef.current.currentTime = 0
-        babyCryingSwapRef.current.volume = 0
-      }
-
-      if (babyCryingAudioRef.current) {
-        babyCryingAudioRef.current.volume = babyCryingTargetVolume()
-      }
-
-      babyCryingCrossfadingRef.current = false
-    }, BABY_CRYING_CROSSFADE_STEP_MS)
-  }, [babyCryingTargetVolume])
-
   const startBabyCrying = useCallback(() => {
     ensureBabyCryingAudios()
 
@@ -643,32 +585,7 @@ export function useLostWoodsGame() {
     }).catch(() => {
       witchRoomAudioActiveRef.current = false
     })
-
-    babyCryingLoopTimerRef.current = window.setInterval(() => {
-      const active = babyCryingAudioRef.current
-      if (!active || babyCryingCrossfadingRef.current || !witchRoomAudioActiveRef.current) {
-        return
-      }
-
-      if (active.paused) {
-        if (active.currentTime > 0.05) {
-          beginBabyCryingCrossfade()
-        }
-        return
-      }
-
-      if (!Number.isFinite(active.duration) || active.duration <= 0) {
-        return
-      }
-
-      const timeLeft = active.duration - active.currentTime
-      if (timeLeft > BABY_CRYING_CROSSFADE_SECONDS) {
-        return
-      }
-
-      beginBabyCryingCrossfade()
-    }, BABY_CRYING_LOOP_CHECK_MS)
-  }, [beginBabyCryingCrossfade, babyCryingTargetVolume, clearBabyCryingTimers, ensureBabyCryingAudios])
+  }, [babyCryingTargetVolume, clearBabyCryingTimers, ensureBabyCryingAudios])
 
   const stopBabyCrying = useCallback((resetToStart = false) => {
     witchRoomAudioActiveRef.current = false
