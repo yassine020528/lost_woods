@@ -5,6 +5,7 @@ export const BUILDING_DOOR_X = Math.floor(MAP_W / 2)
 export const BUILDING_DOOR_Y = 0
 export const TOTAL_KEYS = 5
 export const MONSTER_COUNT = 5
+export const PLAYER_LIFE_COUNT = 3
 export const MONSTER_MIN_SPAWN_DIST_FROM_PLAYER = 14
 export const KEY_MIN_SPACING_STEPS = [7, 6, 5, 4, 3]
 export const SPELL_COOLDOWN_MS = 30_000

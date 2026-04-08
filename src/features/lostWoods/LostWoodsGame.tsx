@@ -43,6 +43,12 @@ const INTRO_SLIDES = [
 ]
 
 const FADE_DURATION_MS = 800
+const DEATH_LINES = [
+  'You died before the ritual could be stopped.',
+  'You failed to save the child.',
+  'In the dark beyond the trees, the sacrifice was completed.',
+  'Now the forest keeps what remains of both of you.',
+]
 
 function IntroAnimation({ onFinish }: { onFinish: () => void }) {
   const [slideIndex, setSlideIndex] = useState(0)
@@ -121,6 +127,40 @@ function IntroAnimation({ onFinish }: { onFinish: () => void }) {
   )
 }
 
+function DeathAnimation({ onFinish }: { onFinish: () => void }) {
+  const [showButton, setShowButton] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowButton(true), FADE_DURATION_MS + DEATH_LINES.length * 260)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  return (
+    <section className="intro-screen death-intro-screen" aria-label="Death ending">
+      <div className="intro-slide intro-slide-hold death-intro-slide">
+        <p className="intro-location death-location">KHOUMIRI FOREST</p>
+        <div className="intro-lines">
+          <h2 className="death-title">YOU DIED</h2>
+          {DEATH_LINES.map((line, i) => (
+            <p
+              key={i}
+              className="intro-line death-line"
+              style={{ animationDelay: `${FADE_DURATION_MS + i * 220}ms` }}
+            >
+              {line}
+            </p>
+          ))}
+        </div>
+      </div>
+      <div className={`intro-controls death-controls ${showButton ? 'death-controls-visible' : 'death-controls-hidden'}`}>
+        <button type="button" className="action-btn action-btn-death" onClick={onFinish}>
+          MAIN MENU
+        </button>
+      </div>
+    </section>
+  )
+}
+
 const staminaClassName = (stamina: number): string => {
   if (stamina > 55) {
     return 'stamina-good'
@@ -162,6 +202,7 @@ export function LostWoodsGame() {
     goToMainMenu,
   } = useLostWoodsGame()
   const showHud = !ui.firstLoadVisible && !ui.mainMenuVisible && !ui.introVisible
+  const lifeIcons = Array.from({ length: ui.totalLives }, (_, index) => index < ui.lives)
 
   return (
     <main className="lost-woods-root">
@@ -171,6 +212,16 @@ export function LostWoodsGame() {
         <div className="game-ui">
           <div className="keys-display">
             KEYS <span>{ui.collectedKeys}</span> / <span>{ui.totalKeys}</span>
+          </div>
+          <div className="lives-display" aria-label={`${ui.lives} of ${ui.totalLives} lives remaining`}>
+            <span className="lives-label">LIVES</span>
+            <div className="lives-icons" aria-hidden="true">
+              {lifeIcons.map((isActive, index) => (
+                <span key={index} className={`life-icon ${isActive ? 'life-icon-active' : 'life-icon-lost'}`}>
+                  ☠
+                </span>
+              ))}
+            </div>
           </div>
           <button
             type="button"
@@ -337,7 +388,7 @@ export function LostWoodsGame() {
 
       {ui.jumpscareVisible && (
         <section className="jumpscare-screen">
-          <div className="jumpscare-text">IT FOUND YOU</div>
+          <div className="jumpscare-text">YOU'VE BEEN CAUGHT</div>
         </section>
       )}
 
@@ -352,13 +403,7 @@ export function LostWoodsGame() {
       )}
 
       {ui.deathVisible && (
-        <section className="result-screen death-screen">
-          <h2>YOU ARE GONE</h2>
-          <p>The forest swallowed you whole.</p>
-          <button type="button" className="action-btn action-btn-death" onClick={restart}>
-            TRY AGAIN
-          </button>
-        </section>
+        <DeathAnimation onFinish={backToMainMenu} />
       )}
     </main>
   )

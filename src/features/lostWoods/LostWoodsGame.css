@@ -33,6 +33,47 @@
   text-shadow: 0 0 8px #a56000;
 }
 
+.lives-display {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #b88a7a;
+  text-shadow: 0 0 10px rgba(120, 36, 22, 0.45);
+  z-index: 11;
+}
+
+.lives-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+.lives-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.life-icon {
+  font-size: 19px;
+  line-height: 1;
+  transition: opacity 0.25s, transform 0.25s, filter 0.25s;
+}
+
+.life-icon-active {
+  color: #d96b58;
+  filter: drop-shadow(0 0 6px rgba(185, 46, 28, 0.42));
+}
+
+.life-icon-lost {
+  color: rgba(90, 60, 58, 0.5);
+  opacity: 0.45;
+  transform: scale(0.92);
+}
+
 .mute-btn {
   pointer-events: auto;
   background: rgba(10, 18, 8, 0.82);
@@ -423,9 +464,67 @@
   background: radial-gradient(ellipse, #0d0202 0%, #000 100%);
 }
 
+.death-intro-screen {
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(24, 10, 10, 0.96) 0%, #000 82%);
+  z-index: 550;
+}
+
+.death-intro-slide {
+  max-width: 760px;
+}
+
+.death-kicker {
+  margin-bottom: 12px;
+  color: #723228;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.death-location {
+  color: #6f2f28;
+}
+
+.death-title {
+  margin: 0 0 18px;
+  font-size: clamp(2.2rem, 7vw, 3.4rem);
+  letter-spacing: 6px;
+  color: #c84032;
+  text-shadow: 0 0 28px rgba(130, 22, 12, 0.55);
+  opacity: 0;
+  animation: intro-line-appear 0.7s ease forwards;
+}
+
+.death-line {
+  color: #b49790;
+  text-shadow: 0 0 24px rgba(120, 48, 40, 0.18);
+}
+
+.death-controls {
+  bottom: 56px;
+  transition: opacity 0.5s ease;
+}
+
+.death-controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.death-controls-visible {
+  opacity: 1;
+}
+
 .death-screen h2 {
   color: #c83020;
   text-shadow: 0 0 30px #801010;
+}
+
+.death-screen p {
+  max-width: 640px;
+  padding-inline: 24px;
+  color: #8c6a64;
+  line-height: 1.75;
 }
 
 .action-btn-death {
@@ -621,9 +720,31 @@
     font-size: 9px;
   }
 
+  .lives-display {
+    top: 12px;
+    gap: 8px;
+  }
+
+  .lives-label {
+    font-size: 10px;
+    letter-spacing: 1.6px;
+  }
+
+  .lives-icons {
+    gap: 6px;
+  }
+
+  .life-icon {
+    font-size: 17px;
+  }
+
   .menu-mute-btn {
     top: 12px;
     right: 12px;
+  }
+
+  .death-controls {
+    bottom: 34px;
   }
 
   .controls-hint {

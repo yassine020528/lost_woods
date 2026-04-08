@@ -46,6 +46,8 @@ export interface Player {
 export interface GameUiState {
   collectedKeys: number
   totalKeys: number
+  lives: number
+  totalLives: number
   stamina: number
   spellReady: boolean
   spellCooldownPercent: number

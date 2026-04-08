@@ -8,6 +8,7 @@ import {
   MONSTER_COUNT,
   MONSTER_MIN_SPAWN_DIST_FROM_PLAYER,
   MONSTER_TYPES,
+  PLAYER_LIFE_COUNT,
   SPELL_COOLDOWN_MS,
   SPELL_RADIUS,
   SPELL_RESPAWN_MAX_DIST,
@@ -23,6 +24,8 @@ import type { GameUiState, KeyItem, Monster, Particle, Player, TileType, TreeDat
 const initialUiState: GameUiState = {
   collectedKeys: 0,
   totalKeys: TOTAL_KEYS,
+  lives: PLAYER_LIFE_COUNT,
+  totalLives: PLAYER_LIFE_COUNT,
   stamina: 100,
   spellReady: true,
   spellCooldownPercent: 100,
@@ -85,7 +88,6 @@ export function useLostWoodsGame() {
 
   const jumpscareActiveRef = useRef(false)
   const jumpscareTimerRef = useRef(0)
-  const jumpscareCountRef = useRef(0)
   const winShownRef = useRef(false)
   const deathShownRef = useRef(false)
   const spawnProtectionTimerRef = useRef(0)
@@ -112,6 +114,16 @@ export function useLostWoodsGame() {
       uiRef.current = next
       return next
     })
+  }, [])
+
+  const resetPlayerToSpawn = useCallback(() => {
+    playerRef.current = {
+      x: 3 * TILE + TILE / 2,
+      y: 3 * TILE + TILE / 2,
+      angle: 0,
+      stamina: 100,
+      speed: 2.3,
+    }
   }, [])
 
   const menuTargetVolume = useCallback((): number => (mutedRef.current ? 0 : MENU_MUSIC_VOLUME), [])
@@ -487,18 +499,11 @@ export function useLostWoodsGame() {
     monstersRef.current = monsters
     particlesRef.current = []
 
-    playerRef.current = {
-      x: spawnTileX * TILE + TILE / 2,
-      y: spawnTileY * TILE + TILE / 2,
-      angle: 0,
-      stamina: 100,
-      speed: 2.3,
-    }
+    resetPlayerToSpawn()
 
     gameStartedRef.current = false
     jumpscareActiveRef.current = false
     jumpscareTimerRef.current = 0
-    jumpscareCountRef.current = 0
     winShownRef.current = false
     deathShownRef.current = false
     spawnProtectionTimerRef.current = SPAWN_PROTECTION_DURATION_MS
@@ -511,6 +516,8 @@ export function useLostWoodsGame() {
 
     updateUi({
       collectedKeys: 0,
+      lives: PLAYER_LIFE_COUNT,
+      totalLives: PLAYER_LIFE_COUNT,
       stamina: 100,
       spellReady: true,
       spellCooldownPercent: 100,
@@ -521,7 +528,7 @@ export function useLostWoodsGame() {
       deathVisible: false,
       hintVisible: true,
     })
-  }, [updateUi])
+  }, [resetPlayerToSpawn, updateUi])
 
   const solid = useCallback((wx: number, wy: number): boolean => {
     const map = mapRef.current
@@ -607,24 +614,13 @@ export function useLostWoodsGame() {
       return
     }
 
+    const remainingLives = Math.max(0, uiRef.current.lives - 1)
     jumpscareActiveRef.current = true
     jumpscareTimerRef.current = 0
-    jumpscareCountRef.current += 1
     screenFlashRef.current = 1
     audioControllerRef.current?.playJumpscare()
 
-    updateUi({ jumpscareVisible: true })
-
-    if (jumpscareCountRef.current >= 3) {
-      window.setTimeout(() => {
-        jumpscareActiveRef.current = false
-        updateUi({ jumpscareVisible: false })
-        if (!winShownRef.current) {
-          deathShownRef.current = true
-          updateUi({ deathVisible: true })
-        }
-      }, 1200)
-    }
+    updateUi({ jumpscareVisible: true, lives: remainingLives })
   }, [updateUi])
 
   const spawnCollectParticles = useCallback((x: number, y: number) => {
@@ -1473,11 +1469,20 @@ export function useLostWoodsGame() {
 
       if (jumpscareActiveRef.current) {
         jumpscareTimerRef.current += dt
-        if (jumpscareTimerRef.current > 900 && jumpscareCountRef.current < 3) {
+        if (jumpscareTimerRef.current > 900) {
           jumpscareActiveRef.current = false
-          updateUi({ jumpscareVisible: false })
-          spawnProtectionTimerRef.current = SPAWN_PROTECTION_DURATION_MS
-          pushMonstersAwayFromPlayer(SPAWN_PROTECTION_MIN_MONSTER_DIST * 1.8, SPELL_RESPAWN_MAX_DIST)
+          if (uiRef.current.lives <= 0) {
+            deathShownRef.current = true
+            audioControllerRef.current?.stop()
+            audioControllerRef.current = null
+            playMenuMusic()
+            updateUi({ jumpscareVisible: false, deathVisible: true })
+          } else {
+            resetPlayerToSpawn()
+            spawnProtectionTimerRef.current = SPAWN_PROTECTION_DURATION_MS
+            pushMonstersAwayFromPlayer(SPAWN_PROTECTION_MIN_MONSTER_DIST * 1.8, SPELL_RESPAWN_MAX_DIST)
+            updateUi({ jumpscareVisible: false, stamina: 100 })
+          }
         }
         return
       }
@@ -1566,7 +1571,7 @@ export function useLostWoodsGame() {
       updateParticles(dt)
       renderFrame(ctx)
     },
-    [movePlayer, pushMonstersAwayFromPlayer, renderFrame, spawnCollectParticles, updateMonsters, updateParticles, updateSpellCooldownUi, updateUi],
+    [movePlayer, playMenuMusic, pushMonstersAwayFromPlayer, renderFrame, resetPlayerToSpawn, spawnCollectParticles, updateMonsters, updateParticles, updateSpellCooldownUi, updateUi],
   )
 
   useEffect(() => {
@@ -1694,6 +1699,8 @@ export function useLostWoodsGame() {
       mainMenuVisible: true,
       currentMenuScreen: 'main',
       paused: false,
+      lives: PLAYER_LIFE_COUNT,
+      totalLives: PLAYER_LIFE_COUNT,
       jumpscareVisible: false,
       winVisible: false,
       deathVisible: false,
