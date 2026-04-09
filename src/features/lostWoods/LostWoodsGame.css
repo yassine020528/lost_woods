@@ -991,7 +991,7 @@
 .menu-buttons {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   margin-top: 28px;
 }
 
@@ -1237,6 +1237,20 @@
   min-width: 150px;
 }
 
+.credits-content {
+  max-width: 700px;
+  padding: 10px 24px 0;
+}
+
+
+.credits-text {
+  margin: 0 0 14px;
+  color: #9fa38f;
+  font-size: 15px;
+  line-height: 1.75;
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .overlay-screen-info {
     padding: 60px 10px 82px;
@@ -1258,5 +1272,13 @@
 
   .info-masthead h2 {
     letter-spacing: 1.4px;
+  }
+
+  .credits-content {
+    padding-inline: 12px;
+  }
+
+  .credits-text {
+    font-size: 14px;
   }
 }

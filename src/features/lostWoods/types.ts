@@ -54,7 +54,7 @@ export interface GameUiState {
   spellCooldownSeconds: number
   firstLoadVisible: boolean
   mainMenuVisible: boolean
-  currentMenuScreen: 'main' | 'controls' | 'info'
+  currentMenuScreen: 'main' | 'controls' | 'info' | 'credits'
   paused: boolean
   jumpscareVisible: boolean
   deathVisible: boolean

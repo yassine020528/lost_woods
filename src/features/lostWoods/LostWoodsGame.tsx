@@ -405,6 +405,7 @@ export function LostWoodsGame() {
     backToMainMenu,
     goToControls,
     goToInfo,
+    goToCredits,
     goToMainMenu,
   } = useLostWoodsGame()
   const showHud =
@@ -530,6 +531,9 @@ export function LostWoodsGame() {
             <button type="button" className="action-btn action-btn-menu" onClick={goToInfo}>
               INFO
             </button>
+            <button type="button" className="action-btn action-btn-menu" onClick={goToCredits}>
+              CREDITS
+            </button>
           </div>
         </section>
       )}
@@ -544,9 +548,10 @@ export function LostWoodsGame() {
             <p className="control-item"><span className="control-key">E</span> - Cast purge spell outdoors / save the baby indoors</p>
             <p className="control-item"><span className="control-key">Esc</span> - Pause and resume game</p>
             <p className="control-item separator">OBJECTIVE</p>
-            <p className="control-item">Collect all 5 keys hidden in the forest</p>
             <p className="control-item">Avoid the creatures lurking in the darkness</p>
-            <p className="control-item">Monsters only chase when your flashlight is on, but touching them is always deadly</p>
+            <p className="control-item">Monsters only chase when your flashlight is on, touching them deadly</p>
+            <p className="control-item">Collect all 5 keys hidden in the forest to open the locked door</p>
+            <p className="control-item">Find and save the child in the abandonned building</p>
           </div>
           <button
             type="button"
@@ -578,6 +583,35 @@ export function LostWoodsGame() {
             <SoundIcon muted={isMuted} />
           </button>
           <button type="button" className="action-btn action-btn-menu info-back-btn" onClick={goToMainMenu}>
+            BACK
+          </button>
+        </section>
+      )}
+
+      {ui.mainMenuVisible && ui.currentMenuScreen === 'credits' && (
+        <section className="overlay-screen">
+          <h1>CREDITS</h1>
+          <div className="menu-content credits-content">
+            <p className="credits-text">
+              All images in the game are AI-generated.<br />Any resemblance to real people, places, or events is purely a matter of chance.
+            </p>
+            <p className="credits-text">
+              The game&apos;s backstory is fictional, but it draws inspiration from a very real and tragic phenomenon: the kidnapping and exploitation of children for witchcraft purposes.
+            </p>
+            <p className="credits-text">
+              The horror is imagined. The grief behind that reality is not.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="mute-btn menu-mute-btn"
+            onClick={toggleMute}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+            title={isMuted ? 'Unmute audio' : 'Mute audio'}
+          >
+            <SoundIcon muted={isMuted} />
+          </button>
+          <button type="button" className="action-btn action-btn-menu" onClick={goToMainMenu}>
             BACK
           </button>
         </section>

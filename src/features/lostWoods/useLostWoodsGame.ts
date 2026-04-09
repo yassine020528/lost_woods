@@ -3236,6 +3236,11 @@ export function useLostWoodsGame() {
     updateUi({ currentMenuScreen: 'info' })
   }, [playUiClick, updateUi])
 
+  const goToCredits = useCallback(() => {
+    playUiClick()
+    updateUi({ currentMenuScreen: 'credits' })
+  }, [playUiClick, updateUi])
+
   const goToMainMenu = useCallback(() => {
     playUiClick()
     updateUi({ currentMenuScreen: 'main' })
@@ -3255,6 +3260,7 @@ export function useLostWoodsGame() {
     restart,
     goToControls,
     goToInfo,
+    goToCredits,
     goToMainMenu,
   }
 }
