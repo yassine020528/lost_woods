@@ -121,6 +121,7 @@ export function useLostWoodsGame() {
   const savedBabyRef = useRef(false)
   const spawnProtectionTimerRef = useRef(0)
   const flashRadiusRef = useRef(140)
+  const flashlightOnRef = useRef(true)
   const hintTimerRef = useRef(4000)
   const screenFlashRef = useRef(0)
   const lightningFlashRef = useRef(0)
@@ -701,6 +702,7 @@ export function useLostWoodsGame() {
     playerWalkCycleRef.current = 0
     playerMovingRef.current = false
     flashRadiusRef.current = 160
+    flashlightOnRef.current = true
     savedBabyRef.current = false
 
     const { width, height } = dimensionsRef.current
@@ -971,6 +973,7 @@ export function useLostWoodsGame() {
     savedBabyRef.current = false
     spawnProtectionTimerRef.current = SPAWN_PROTECTION_DURATION_MS
     flashRadiusRef.current = 140
+    flashlightOnRef.current = true
     hintTimerRef.current = 4000
     screenFlashRef.current = 0
     lightningFlashRef.current = 0
@@ -1285,9 +1288,10 @@ export function useLostWoodsGame() {
       monsters.forEach((monster) => {
         const dist = Math.hypot(monster.x - player.x, monster.y - player.y)
         const monsterMargin = 15
+        const flashlightOn = flashlightOnRef.current
         monster.wanderTimer -= dt
 
-        if (dist < monster.alertR) {
+        if (flashlightOn && dist < monster.alertR) {
           monster.state = 'chase'
           const angle = Math.atan2(player.y - monster.y, player.x - monster.x)
           const speed = monster.speed * (1 + (1 - dist / monster.alertR) * 2)
@@ -2025,6 +2029,20 @@ export function useLostWoodsGame() {
         }
       }
     }
+
+    const canopyShade = ctx.createLinearGradient(0, 0, 0, height)
+    canopyShade.addColorStop(0, 'rgba(8, 16, 13, 0.12)')
+    canopyShade.addColorStop(0.5, 'rgba(12, 22, 17, 0.06)')
+    canopyShade.addColorStop(1, 'rgba(4, 10, 7, 0.18)')
+    ctx.fillStyle = canopyShade
+    ctx.fillRect(0, 0, width, height)
+
+    const mistGlow = ctx.createRadialGradient(width * 0.5, height * 0.42, 0, width * 0.5, height * 0.42, Math.max(width, height) * 0.9)
+    mistGlow.addColorStop(0, 'rgba(118, 140, 118, 0.14)')
+    mistGlow.addColorStop(0.55, 'rgba(58, 74, 62, 0.08)')
+    mistGlow.addColorStop(1, 'rgba(0, 0, 0, 0)')
+    ctx.fillStyle = mistGlow
+    ctx.fillRect(0, 0, width, height)
   }, [drawBuildingMap, drawGround, drawLockedDoor, drawOpenDoor, drawTree])
 
   const drawKeys = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -2267,6 +2285,71 @@ export function useLostWoodsGame() {
     })
   }, [])
 
+  const drawMonsterGlow = useCallback((ctx: CanvasRenderingContext2D) => {
+    if (uiRef.current.buildingVisible) {
+      return
+    }
+
+    const { width, height } = dimensionsRef.current
+    const { x: camX, y: camY } = cameraRef.current
+    monstersRef.current.forEach((monster) => {
+      const sx = monster.x - camX
+      const sy = monster.y - camY
+      if (sx < -72 || sx > width + 72 || sy < -72 || sy > height + 72) {
+        return
+      }
+
+      const bob = Math.sin(tickRef.current * 0.05 + monster.phase) * 4
+      const pulse = 0.9 + Math.sin(tickRef.current * 0.08 + monster.phase) * 0.1
+      const intensity = monster.state === 'chase' ? 0.88 : 0.68
+      const glowRadius = (monster.kind === 'spider' ? 34 : monster.kind === 'wraith' ? 44 : 38) * pulse
+
+      ctx.save()
+      ctx.globalCompositeOperation = 'screen'
+      ctx.globalAlpha = intensity * (monster.state === 'chase' ? 0.72 : 0.58)
+
+      const aura = ctx.createRadialGradient(sx, sy + bob - 4, 0, sx, sy + bob - 4, glowRadius)
+      if (monster.state === 'chase') {
+        aura.addColorStop(0, 'rgba(255, 92, 54, 0.92)')
+        aura.addColorStop(0.45, 'rgba(220, 44, 24, 0.44)')
+      } else {
+        aura.addColorStop(0, 'rgba(196, 230, 220, 0.88)')
+        aura.addColorStop(0.45, 'rgba(118, 162, 148, 0.32)')
+      }
+      aura.addColorStop(1, 'rgba(0, 0, 0, 0)')
+
+      ctx.fillStyle = aura
+      ctx.beginPath()
+      ctx.arc(sx, sy + bob - 4, glowRadius, 0, Math.PI * 2)
+      ctx.fill()
+
+      const coreGlow = ctx.createRadialGradient(sx, sy + bob - 4, 0, sx, sy + bob - 4, glowRadius * 0.42)
+      if (monster.state === 'chase') {
+        coreGlow.addColorStop(0, 'rgba(255, 180, 140, 0.7)')
+        coreGlow.addColorStop(1, 'rgba(255, 110, 72, 0)')
+      } else {
+        coreGlow.addColorStop(0, 'rgba(236, 255, 248, 0.62)')
+        coreGlow.addColorStop(1, 'rgba(168, 214, 204, 0)')
+      }
+      ctx.globalAlpha = intensity * 0.78
+      ctx.fillStyle = coreGlow
+      ctx.beginPath()
+      ctx.arc(sx, sy + bob - 4, glowRadius * 0.42, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.globalAlpha = intensity * 0.95
+      ctx.fillStyle = monster.state === 'chase' ? '#ff6b4a' : '#d8ece6'
+      ctx.beginPath()
+      ctx.arc(sx - 4, sy + bob - 6, 1.9, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(sx + 4, sy + bob - 6, 1.9, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.restore()
+    })
+  }, [])
+
   const drawPlayer = useCallback((ctx: CanvasRenderingContext2D) => {
     const { x: camX, y: camY } = cameraRef.current
     const player = playerRef.current
@@ -2404,6 +2487,7 @@ export function useLostWoodsGame() {
     const { x: camX, y: camY } = cameraRef.current
     const player = playerRef.current
     const flashRadius = flashRadiusRef.current
+    const flashlightOn = flashlightOnRef.current
 
     const cx = player.x - camX
     const cy = player.y - camY
@@ -2417,52 +2501,63 @@ export function useLostWoodsGame() {
     }
 
     const indoor = uiRef.current.buildingVisible
-    maskCtx.fillStyle = indoor ? 'rgba(0,0,0,0.56)' : 'rgba(0,0,0,0.97)'
+    maskCtx.fillStyle = indoor ? 'rgba(0,0,0,0.56)' : flashlightOn ? 'rgba(0,0,0,0.82)' : 'rgba(0,0,0,0.88)'
     maskCtx.fillRect(0, 0, width, height)
     maskCtx.globalCompositeOperation = 'destination-out'
 
-    const coneAngle = Math.PI / 4.2
-    const gradient = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, flashRadius)
-    gradient.addColorStop(0, indoor ? 'rgba(255,244,214,0.82)' : 'rgba(255,248,220,1)')
-    gradient.addColorStop(0.4, indoor ? 'rgba(255,226,168,0.54)' : 'rgba(255,240,180,0.9)')
-    gradient.addColorStop(0.75, indoor ? 'rgba(255,196,112,0.2)' : 'rgba(255,220,140,0.45)')
-    gradient.addColorStop(0.9, indoor ? 'rgba(255,174,92,0.06)' : 'rgba(255,200,100,0.15)')
-    gradient.addColorStop(1, 'rgba(0,0,0,0)')
+    if (flashlightOn) {
+      const coneAngle = Math.PI / 4.2
+      const gradient = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, flashRadius)
+      gradient.addColorStop(0, indoor ? 'rgba(255,244,214,0.82)' : 'rgba(255,248,220,1)')
+      gradient.addColorStop(0.4, indoor ? 'rgba(255,226,168,0.54)' : 'rgba(255,240,180,0.9)')
+      gradient.addColorStop(0.75, indoor ? 'rgba(255,196,112,0.2)' : 'rgba(255,220,140,0.45)')
+      gradient.addColorStop(0.9, indoor ? 'rgba(255,174,92,0.06)' : 'rgba(255,200,100,0.15)')
+      gradient.addColorStop(1, 'rgba(0,0,0,0)')
 
-    maskCtx.fillStyle = gradient
-    maskCtx.beginPath()
-    maskCtx.moveTo(cx, cy)
-    if (indoor) {
-      const rayCount = 80
-      for (let index = 0; index <= rayCount; index += 1) {
-        const angle = player.angle - coneAngle + (index / rayCount) * coneAngle * 2
-        const hit = castLightRay(player.x, player.y, angle, flashRadius)
-        maskCtx.lineTo(hit.x - camX, hit.y - camY)
+      maskCtx.fillStyle = gradient
+      maskCtx.beginPath()
+      maskCtx.moveTo(cx, cy)
+      if (indoor) {
+        const rayCount = 80
+        for (let index = 0; index <= rayCount; index += 1) {
+          const angle = player.angle - coneAngle + (index / rayCount) * coneAngle * 2
+          const hit = castLightRay(player.x, player.y, angle, flashRadius)
+          maskCtx.lineTo(hit.x - camX, hit.y - camY)
+        }
+      } else {
+        maskCtx.arc(cx, cy, flashRadius, player.angle - coneAngle, player.angle + coneAngle)
       }
-    } else {
-      maskCtx.arc(cx, cy, flashRadius, player.angle - coneAngle, player.angle + coneAngle)
+      maskCtx.closePath()
+      maskCtx.fill()
     }
-    maskCtx.closePath()
-    maskCtx.fill()
 
-    const ambient = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, indoor ? 24 : 32)
-    ambient.addColorStop(0, indoor ? 'rgba(255,228,188,0.28)' : 'rgba(255,240,200,0.55)')
+    const ambientRadius = flashlightOn ? (indoor ? 24 : 92) : indoor ? 18 : 44
+    const ambient = maskCtx.createRadialGradient(cx, cy, 0, cx, cy, ambientRadius)
+    ambient.addColorStop(0, flashlightOn ? (indoor ? 'rgba(255,228,188,0.28)' : 'rgba(224,238,208,0.46)') : indoor ? 'rgba(210, 222, 232, 0.16)' : 'rgba(188, 212, 224, 0.22)')
+    if (flashlightOn && !indoor) {
+      ambient.addColorStop(0.42, 'rgba(164,186,152,0.24)')
+      ambient.addColorStop(0.72, 'rgba(112,138,108,0.1)')
+    } else if (!flashlightOn && !indoor) {
+      ambient.addColorStop(0.56, 'rgba(110, 136, 152, 0.08)')
+    }
     ambient.addColorStop(1, 'rgba(0,0,0,0)')
 
     maskCtx.fillStyle = ambient
     maskCtx.beginPath()
-    maskCtx.arc(cx, cy, indoor ? 24 : 32, 0, Math.PI * 2)
+    maskCtx.arc(cx, cy, ambientRadius, 0, Math.PI * 2)
     maskCtx.fill()
 
     ctx.drawImage(mask, 0, 0)
 
-    ctx.save()
-    ctx.globalAlpha = 0.15
-    ctx.fillStyle = '#fff8c0'
-    ctx.beginPath()
-    ctx.arc(cx + Math.cos(player.angle) * 8, cy + Math.sin(player.angle) * 8, 4, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
+    if (flashlightOn) {
+      ctx.save()
+      ctx.globalAlpha = 0.15
+      ctx.fillStyle = '#fff8c0'
+      ctx.beginPath()
+      ctx.arc(cx + Math.cos(player.angle) * 8, cy + Math.sin(player.angle) * 8, 4, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
   }, [castLightRay])
 
   const drawMinimap = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -2519,21 +2614,6 @@ export function useLostWoodsGame() {
     ctx.fillStyle = '#00ff66'
     ctx.fillRect(doorX, doorY, doorSize, doorSize)
 
-    keyItemsRef.current.forEach((key) => {
-      if (key.collected) {
-        return
-      }
-      ctx.fillStyle = '#d8a84c'
-      ctx.fillRect(key.x * TILE * scale + 1, key.y * TILE * scale + 1, Math.max(2, TILE * scale * 0.2), Math.max(2, TILE * scale * 0.2))
-    })
-
-    monstersRef.current.forEach((monster) => {
-      ctx.fillStyle = monster.state === 'chase' ? '#ff5244' : '#a83b2a'
-      ctx.beginPath()
-      ctx.arc(monster.x * scale, monster.y * scale, Math.max(2, TILE * scale * 0.12), 0, Math.PI * 2)
-      ctx.fill()
-    })
-
     ctx.fillStyle = '#7df0ff'
     ctx.beginPath()
     ctx.arc(player.x * scale, player.y * scale, Math.max(2.5, TILE * scale * 0.14), 0, Math.PI * 2)
@@ -2559,6 +2639,7 @@ export function useLostWoodsGame() {
     drawMonsters(ctx)
     drawPlayer(ctx)
     drawFlashlight(ctx)
+    drawMonsterGlow(ctx)
     drawMinimap(ctx)
 
     if (Math.random() < 0.006) {
@@ -2589,7 +2670,7 @@ export function useLostWoodsGame() {
 
       lightningFlashRef.current = Math.max(0, lightningFlashRef.current - 0.16)
     }
-  }, [drawFlashlight, drawKeys, drawMap, drawMinimap, drawMonsters, drawParticles, drawPlayer])
+  }, [drawFlashlight, drawKeys, drawMap, drawMinimap, drawMonsterGlow, drawMonsters, drawParticles, drawPlayer])
 
   const loop = useCallback(
     (timestamp: number) => {
@@ -2859,6 +2940,22 @@ export function useLostWoodsGame() {
       }
 
       const normalizedKey = normalizeHeldKey(event)
+      if (
+        !event.repeat &&
+        normalizedKey === 'f' &&
+        gameStartedRef.current &&
+        !uiRef.current.mainMenuVisible &&
+        !uiRef.current.firstLoadVisible &&
+        !uiRef.current.introVisible &&
+        !uiRef.current.enteringBuilding &&
+        !uiRef.current.jumpscareVisible &&
+        !uiRef.current.deathVisible
+      ) {
+        flashlightOnRef.current = !flashlightOnRef.current
+        event.preventDefault()
+        return
+      }
+
       heldRef.current[normalizedKey] = true
       if (
         !event.repeat &&

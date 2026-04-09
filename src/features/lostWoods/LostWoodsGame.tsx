@@ -7,7 +7,7 @@ const INTRO_SLIDES = [
   {
     location: 'NORTH AFRICA · KHOUMIRI FOREST',
     lines: [
-      'A child has been taken.',
+      'A baby has been taken.',
       'Abducted by a cult that believes innocent blood',
       'can be used in rituals to summon buried treasure.',
     ],
@@ -15,11 +15,10 @@ const INTRO_SLIDES = [
   {
     location: null,
     lines: [
-      'They are being held inside an abandoned building',
-      'deep in the forest.',
-      'The door is locked.',
+      'The baby is being held inside an abandoned building',
+      'deep in the forest. The door is locked.',
       'Five keys were scattered across the woods by the fleeing cult.',
-      'Find them all.',
+      'Find them all to open the door.',
     ],
   },
   {
@@ -27,17 +26,17 @@ const INTRO_SLIDES = [
     lines: [
       'The forest is not empty.',
       'Dark entities guard these woods.',
-      'Do not shine your flashlight directly at them —',
+      'Do not shine your flashlight close to them,',
       'they will follow you, and they will not stop.',
     ],
   },
   {
     location: null,
     lines: [
-      'Before you left, the village elder gave you a spell.',
-      'If a djinn gets too close, cast it.',
+      'The village elder gave you a spell before leaving to the woods.',
+      'If dark entities get too close, cast it.',
       'It will destroy them.',
-      'Use it wisely — it takes time to recharge.',
+      'Use it wisely, it takes time to recharge.',
     ],
   },
 ]
@@ -65,9 +64,12 @@ const SAVED_BABY_SLIDES = [
   {
     location: null,
     lines: [
-      'Hundreds of children disappear across North Africa.',
-      'Some are targeted through trafficking, ritual abuse,',
-      'or violence justified through witchcraft beliefs and superstition.',
+      'Each year, hundreds of children disappear across North Africa.',
+      'They are the lost victims of trafficking and ritualized cruelty.',
+      'Many account witnessing rituals they claim are real.',
+      'The files stay open. The families stay waiting.',
+      'Hundreds of cases remain unsolved,',
+      'while the rituals continue in the dark.',
     ],
   },
 ]
@@ -231,7 +233,7 @@ function SavedBabyAnimation({ onFinish }: { onFinish: () => void }) {
       aria-label="Baby rescue ending, click to advance"
     >
       <div className="intro-slide intro-slide-hold death-intro-slide saved-baby-slide">
-        <h2 className="death-title saved-baby-title saved-baby-title-static">YOU SAVED THE BABY</h2>
+        <h2 className="death-title saved-baby-title">YOU SAVED THE BABY</h2>
         <div className="intro-lines saved-baby-lines">
           <div className={`saved-baby-body intro-slide intro-slide-${phase}`}>
             {slide.location && <p className="intro-location saved-baby-location">{slide.location}</p>}
@@ -445,12 +447,13 @@ export function LostWoodsGame() {
           <div className="menu-content">
             <p className="control-item"><span className="control-key">WASD / Arrow Keys</span> - Move around the forest</p>
             <p className="control-item"><span className="control-key">Shift</span> - Sprint (consumes stamina)</p>
+            <p className="control-item"><span className="control-key">F</span> - Toggle flashlight on and off</p>
             <p className="control-item"><span className="control-key">E</span> - Cast purge spell outdoors / save the baby indoors</p>
             <p className="control-item"><span className="control-key">Esc</span> - Pause and resume game</p>
             <p className="control-item separator">OBJECTIVE</p>
             <p className="control-item">Collect all 5 keys hidden in the forest</p>
             <p className="control-item">Avoid the creatures lurking in the darkness</p>
-            <p className="control-item">Use your flashlight to navigate and the spell to defend yourself</p>
+            <p className="control-item">Monsters only chase when your flashlight is on, but touching them is always deadly</p>
           </div>
           <button
             type="button"
