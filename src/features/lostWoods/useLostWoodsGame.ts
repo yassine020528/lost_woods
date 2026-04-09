@@ -2973,10 +2973,6 @@ export function useLostWoodsGame() {
         saveBaby()
         castSpell()
       }
-
-      if (!event.repeat && normalizedKey === 'Space') {
-        castSpell()
-      }
     }
     const onKeyUp = (event: KeyboardEvent): void => {
       heldRef.current[normalizeHeldKey(event)] = false
