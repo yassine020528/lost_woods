@@ -3,7 +3,7 @@ export function InfoContent() {
     <div className="info-paper" aria-label="Classified archive details">
       <header className="info-masthead">
         <p className="info-edition">ARCHIVE EDITION · RESTRICTED CIRCULATION</p>
-        <h2>THE KHOUMIRI GAZETTE</h2>
+        <h2>THE TUNISIAN ARCHIVE</h2>
         <p className="info-date">April 6, 1939 · Special Investigations Desk</p>
       </header>
 
@@ -26,7 +26,7 @@ export function InfoContent() {
           <p>
                 <strong>OPERATIONAL DIRECTIVE:</strong> Intelligence reports confirm a child vanished from the 
                 lower foothills seventy-two hours ago. To breach the rusted threshold of the abandoned structure 
-                where they are reportedly held, you must scour the Khoumiri woods for the five golden keys 
+                where they are reportedly held, you must scour the Khmir woods for the five golden keys 
                 discarded by the panicked seekers. Recovery of the keys is the only path to the interior; 
                 recovery of the child is the only path to penance.
           </p>
@@ -53,12 +53,12 @@ export function InfoContent() {
           <h4>THE HUNT</h4>
           <figure className="info-photo-frame info-photo-frame-small">
             <img className="info-photo" src="/info_pic3.png" alt="A misty mountain forest resembling the Kroumirie region" loading="lazy" />
-            <figcaption>Khoumiri foothills, where reports converge.</figcaption>
+            <figcaption>Khmir foothills, where reports converge.</figcaption>
           </figure>
           <p className="drop-cap">
             The region is named after its people, the Khumayr (locally Khmir), whose mountain communities have
             long shaped life in these forests. In later folklore and criminal rumor, outside treasure hunters
-            recast the Khoumiri as a ritual frontier, entering with old maps, grave stories, and borrowed
+            recast the Khmir region as a ritual frontier, entering with old maps, grave stories, and borrowed
             incantations. Many locals describe a quieter truth: children vanish into myth first, then into
             silence. This archive records that silence, and the names that never came home.
           </p>

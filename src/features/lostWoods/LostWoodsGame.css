@@ -618,6 +618,10 @@
   width: 100%;
 }
 
+.saved-baby-body-evidence {
+  transform: translateY(-34px);
+}
+
 .saved-baby-lines {
   min-height: 168px;
   justify-content: flex-start;
@@ -626,6 +630,29 @@
 .saved-baby-slide {
   position: relative;
   z-index: 3;
+}
+
+.saved-baby-figure {
+  width: min(100%, 560px);
+  margin: 0 auto 18px;
+}
+
+.saved-baby-image {
+  width: 100%;
+  display: block;
+  border: 1px solid rgba(164, 146, 94, 0.42);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
+  max-height: 44dvh;
+  object-fit: cover;
+}
+
+.saved-baby-caption {
+  margin-top: 8px;
+  color: #9f9173;
+  font-size: 11px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  text-transform: uppercase;
 }
 
 .saved-baby-line {
@@ -950,6 +977,14 @@
 
   .hint {
     bottom: 78px;
+  }
+
+  .saved-baby-image {
+    max-height: 34dvh;
+  }
+
+  .saved-baby-body-evidence {
+    transform: translateY(-20px);
   }
 }
 

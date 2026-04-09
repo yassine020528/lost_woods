@@ -5,7 +5,7 @@ import { useLostWoodsGame } from './useLostWoodsGame'
 
 const INTRO_SLIDES = [
   {
-    location: 'NORTH AFRICA · KHOUMIRI FOREST',
+    location: 'NORTH AFRICA · KHMIR FOREST',
     lines: [
       'A baby has been taken.',
       'Abducted by a cult that believes innocent blood',
@@ -65,16 +65,51 @@ const SAVED_BABY_SLIDES = [
     location: null,
     lines: [
       'Each year, hundreds of children disappear across North Africa.',
-      'They are the lost victims of trafficking and ritualized cruelty.',
-      'Many account witnessing rituals they claim are real.',
+      'Some are never found. Some return carrying stories no one wants to believe.',
       'The files stay open. The families stay waiting.',
-      'Hundreds of cases remain unsolved,',
-      'while the rituals continue in the dark.',
+    ],
+  },
+  {
+    location: 'UNSOLVED CASE FILES',
+    image: '/outro_image1.png',
+    imageAlt: 'Portrait plaques of cemetery victims with their eyes covered',
+    lines: [
+      'In one cemetery, damaged portraits mark people said to be victims of sorcery.',
+      'Sorcerers use the kidnapped children\'s blood to curse the victims,',
+    ],
+    caption: 'Undug portraits from a cemetery, associated with victims of sorcery.',
+  },
+  {
+    location: 'UNSOLVED CASE FILES',
+    image: '/outro_image2.png',
+    imageAlt: 'A newspaper clipping about four missing children in a village',
+    lines: [
+      'The report tells of four children who vanished from a nearby village.',
+      'The article offers no ending, only names, ages, and a silence',
+      'that outlived the paper.',
+    ],
+    caption: 'Newspaper reports four missing children from a village in El Kef, Tunisia.',
+  },
+  {
+    location: 'UNSOLVED CASE FILES',
+    lines: [
+      'Although the images used are AI-generated,',
+      'the dark reality they reflect is all REAL.',
+      'Hundreds of cases remain unsolved, while the rituals continue in the dark.',
+      'And somewhere, a child is still waiting to be found.',
     ],
   },
 ]
 
-function IntroAnimation({ onFinish }: { onFinish: () => void }) {
+function IntroAnimation({
+  onFinish,
+  isMuted,
+  toggleMute,
+}: {
+  onFinish: () => void
+  isMuted: boolean
+  toggleMute: () => void
+}) {
   const [slideIndex, setSlideIndex] = useState(0)
   const [phase, setPhase] = useState<'in' | 'hold' | 'out'>('in')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -114,6 +149,18 @@ function IntroAnimation({ onFinish }: { onFinish: () => void }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance() } }}
       aria-label="Story introduction, click to advance"
     >
+      <button
+        type="button"
+        className="mute-btn menu-mute-btn"
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleMute()
+        }}
+        aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+        title={isMuted ? 'Unmute audio' : 'Mute audio'}
+      >
+        <SoundIcon muted={isMuted} />
+      </button>
       <div className={`intro-slide intro-slide-${phase}`}>
         {slide.location && (
           <p className="intro-location">{slide.location}</p>
@@ -151,7 +198,15 @@ function IntroAnimation({ onFinish }: { onFinish: () => void }) {
   )
 }
 
-function DeathAnimation({ onFinish }: { onFinish: () => void }) {
+function DeathAnimation({
+  onFinish,
+  isMuted,
+  toggleMute,
+}: {
+  onFinish: () => void
+  isMuted: boolean
+  toggleMute: () => void
+}) {
   const [showButton, setShowButton] = useState(false)
 
   useEffect(() => {
@@ -161,8 +216,17 @@ function DeathAnimation({ onFinish }: { onFinish: () => void }) {
 
   return (
     <section className="intro-screen death-intro-screen" aria-label="Death ending">
+      <button
+        type="button"
+        className="mute-btn menu-mute-btn"
+        onClick={toggleMute}
+        aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+        title={isMuted ? 'Unmute audio' : 'Mute audio'}
+      >
+        <SoundIcon muted={isMuted} />
+      </button>
       <div className="intro-slide intro-slide-hold death-intro-slide">
-        <p className="intro-location death-location">KHOUMIRI FOREST</p>
+        <p className="intro-location death-location">KHMIR FOREST</p>
         <div className="intro-lines">
           <h2 className="death-title">YOU DIED</h2>
           {DEATH_LINES.map((line, i) => (
@@ -185,12 +249,21 @@ function DeathAnimation({ onFinish }: { onFinish: () => void }) {
   )
 }
 
-function SavedBabyAnimation({ onFinish }: { onFinish: () => void }) {
+function SavedBabyAnimation({
+  onFinish,
+  isMuted,
+  toggleMute,
+}: {
+  onFinish: () => void
+  isMuted: boolean
+  toggleMute: () => void
+}) {
   const [slideIndex, setSlideIndex] = useState(0)
   const [phase, setPhase] = useState<'in' | 'hold' | 'out'>('in')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const slide = SAVED_BABY_SLIDES[slideIndex]
   const isLast = slideIndex === SAVED_BABY_SLIDES.length - 1
+  const showRescueTitle = slideIndex <= 1
 
   const advance = useCallback(() => {
     if (phase !== 'hold' || isLast) {
@@ -232,20 +305,40 @@ function SavedBabyAnimation({ onFinish }: { onFinish: () => void }) {
       }}
       aria-label="Baby rescue ending, click to advance"
     >
+      <button
+        type="button"
+        className="mute-btn menu-mute-btn"
+        onClick={(e) => {
+          e.stopPropagation()
+          toggleMute()
+        }}
+        aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+        title={isMuted ? 'Unmute audio' : 'Mute audio'}
+      >
+        <SoundIcon muted={isMuted} />
+      </button>
       <div className="intro-slide intro-slide-hold death-intro-slide saved-baby-slide">
-        <h2 className="death-title saved-baby-title">YOU SAVED THE BABY</h2>
+        {showRescueTitle && <h2 className="death-title saved-baby-title">YOU SAVED THE BABY</h2>}
         <div className="intro-lines saved-baby-lines">
           <div className={`saved-baby-body intro-slide intro-slide-${phase}`}>
-            {slide.location && <p className="intro-location saved-baby-location">{slide.location}</p>}
-            {slide.lines.map((line, i) => (
-              <p
-                key={i}
-                className="intro-line death-line saved-baby-line"
-                style={{ animationDelay: `${FADE_DURATION_MS + i * 220}ms` }}
-              >
-                {line}
-              </p>
-            ))}
+            <div className={showRescueTitle ? '' : 'saved-baby-body-evidence'}>
+              {slide.location && <p className="intro-location saved-baby-location">{slide.location}</p>}
+              {'image' in slide && slide.image && (
+                <figure className="saved-baby-figure">
+                  <img className="saved-baby-image" src={slide.image} alt={slide.imageAlt ?? ''} />
+                  {slide.caption && <figcaption className="saved-baby-caption">{slide.caption}</figcaption>}
+                </figure>
+              )}
+              {slide.lines.map((line, i) => (
+                <p
+                  key={i}
+                  className="intro-line death-line saved-baby-line"
+                  style={{ animationDelay: `${FADE_DURATION_MS + i * 220}ms` }}
+                >
+                  {line}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -393,7 +486,7 @@ export function LostWoodsGame() {
 
       {showHud && <div className={`hint ${ui.hintVisible ? 'hint-visible' : 'hint-hidden'}`}>{ui.hintText}</div>}
 
-      {ui.introVisible && <IntroAnimation onFinish={finishIntro} />}
+      {ui.introVisible && <IntroAnimation onFinish={finishIntro} isMuted={isMuted} toggleMute={toggleMute} />}
 
       {ui.firstLoadVisible && (
         <section
@@ -530,13 +623,9 @@ export function LostWoodsGame() {
         </section>
       )}
 
-      {ui.deathVisible && (
-        <DeathAnimation onFinish={backToMainMenu} />
-      )}
+      {ui.deathVisible && <DeathAnimation onFinish={backToMainMenu} isMuted={isMuted} toggleMute={toggleMute} />}
 
-      {ui.savedBabyVisible && (
-        <SavedBabyAnimation onFinish={backToMainMenu} />
-      )}
+      {ui.savedBabyVisible && <SavedBabyAnimation onFinish={backToMainMenu} isMuted={isMuted} toggleMute={toggleMute} />}
     </main>
   )
 }

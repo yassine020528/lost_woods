@@ -62,6 +62,7 @@ const INDOOR_AMBIENT_CROSSFADE_STEP_MS = 50
 const INDOOR_AMBIENT_LOOP_CHECK_MS = 140
 const BABY_CRYING_VOLUME = 0.42
 const DEBUG_FORCE_BUILDING_KEY = 'b'
+const DEBUG_OUTRO_KEY = 'o'
 const BABY_CRIB_TILE = { x: 21, y: 4 }
 const BABY_RESCUE_DISTANCE = TILE * 1.05
 const SAVED_BABY_TRANSITION_MS = 1700
@@ -1236,23 +1237,7 @@ export function useLostWoodsGame() {
     updateSpellCooldownUi()
   }, [projectToWalkable, spawnCollectParticles, updateSpellCooldownUi])
 
-  const saveBaby = useCallback(() => {
-    if (
-      !uiRef.current.buildingVisible ||
-      uiRef.current.enteringBuilding ||
-      deathShownRef.current ||
-      savedBabyRef.current
-    ) {
-      return
-    }
-
-    const player = playerRef.current
-    const cribCenterX = BABY_CRIB_TILE.x * TILE + TILE / 2
-    const cribCenterY = BABY_CRIB_TILE.y * TILE + TILE / 2
-    if (Math.hypot(cribCenterX - player.x, cribCenterY - player.y) > BABY_RESCUE_DISTANCE) {
-      return
-    }
-
+  const showSavedBabyOutro = useCallback(() => {
     savedBabyRef.current = true
     gameStartedRef.current = false
     pausedRef.current = false
@@ -1279,6 +1264,43 @@ export function useLostWoodsGame() {
       })
     }, SAVED_BABY_TRANSITION_MS)
   }, [clearSavedBabyTransitionTimer, playMenuMusic, stopBabyCrying, stopIndoorAmbient, updateUi])
+
+  const saveBaby = useCallback(() => {
+    if (
+      !uiRef.current.buildingVisible ||
+      uiRef.current.enteringBuilding ||
+      deathShownRef.current ||
+      savedBabyRef.current
+    ) {
+      return
+    }
+
+    const player = playerRef.current
+    const cribCenterX = BABY_CRIB_TILE.x * TILE + TILE / 2
+    const cribCenterY = BABY_CRIB_TILE.y * TILE + TILE / 2
+    if (Math.hypot(cribCenterX - player.x, cribCenterY - player.y) > BABY_RESCUE_DISTANCE) {
+      return
+    }
+
+    showSavedBabyOutro()
+  }, [showSavedBabyOutro])
+
+  const triggerOutroShortcut = useCallback(() => {
+    if (
+      uiRef.current.mainMenuVisible ||
+      uiRef.current.firstLoadVisible ||
+      uiRef.current.introVisible ||
+      uiRef.current.enteringBuilding ||
+      uiRef.current.savedBabyTransitionVisible ||
+      uiRef.current.savedBabyVisible ||
+      uiRef.current.deathVisible ||
+      deathShownRef.current
+    ) {
+      return
+    }
+
+    showSavedBabyOutro()
+  }, [showSavedBabyOutro])
 
   const updateMonsters = useCallback(
     (dt: number) => {
@@ -2940,6 +2962,12 @@ export function useLostWoodsGame() {
       }
 
       const normalizedKey = normalizeHeldKey(event)
+      if (!event.repeat && normalizedKey === DEBUG_OUTRO_KEY) {
+        triggerOutroShortcut()
+        event.preventDefault()
+        return
+      }
+
       if (
         !event.repeat &&
         normalizedKey === 'f' &&
@@ -3014,7 +3042,7 @@ export function useLostWoodsGame() {
       clearDoorEntryTimer()
       clearSavedBabyTransitionTimer()
     }
-  }, [castSpell, clearDoorEntryTimer, clearSavedBabyTransitionTimer, enterBuilding, generateMap, loop, playMenuMusic, saveBaby, stopBabyCrying, stopIndoorAmbient, stopMenuMusic, updateUi])
+  }, [castSpell, clearDoorEntryTimer, clearSavedBabyTransitionTimer, enterBuilding, generateMap, loop, saveBaby, stopBabyCrying, stopIndoorAmbient, stopMenuMusic, triggerOutroShortcut, updateUi])
 
   const startGame = useCallback(() => {
     if (gameStartedRef.current || uiRef.current.firstLoadVisible) {
