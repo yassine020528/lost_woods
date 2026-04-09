@@ -443,7 +443,7 @@
 }
 
 .action-btn {
-  margin-top: 28px;
+  margin-top: 10px;
   padding: 12px 34px;
   background: transparent;
   font-family: Georgia, 'Times New Roman', serif;
@@ -991,8 +991,8 @@
 .menu-buttons {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 28px;
+  gap: 6px;
+  margin-top: 5px;
 }
 
 .action-btn-menu {
