@@ -84,7 +84,7 @@ const SAVED_BABY_SLIDES = [
     image: '/outro_image2.png',
     imageAlt: 'A newspaper clipping about four missing children in a village',
     lines: [
-      'The report tells of four children who vanished from a nearby village.',
+      'A report tells of four children who vanished from a nearby village.',
       'The article offers no ending, only names, ages, and a silence',
       'that outlived the paper.',
     ],
