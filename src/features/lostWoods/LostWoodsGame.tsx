@@ -114,13 +114,13 @@ function IntroAnimation({
   const [phase, setPhase] = useState<'in' | 'hold' | 'out'>('in')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const advance = useCallback(() => {
+  const transitionToSlide = useCallback((getNextIndex: (current: number) => number) => {
     if (phase !== 'hold') return
     if (timerRef.current) clearTimeout(timerRef.current)
     setPhase('out')
     timerRef.current = setTimeout(() => {
       setSlideIndex((i) => {
-        const next = i + 1
+        const next = getNextIndex(i)
         if (next >= INTRO_SLIDES.length) {
           onFinish()
           return i
@@ -132,6 +132,14 @@ function IntroAnimation({
     }, FADE_DURATION_MS)
   }, [phase, onFinish])
 
+  const advance = useCallback(() => {
+    transitionToSlide((current) => current + 1)
+  }, [transitionToSlide])
+
+  const goBack = useCallback(() => {
+    transitionToSlide((current) => Math.max(current - 1, 0))
+  }, [transitionToSlide])
+
   useEffect(() => {
     timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
@@ -139,6 +147,7 @@ function IntroAnimation({
 
   const slide = INTRO_SLIDES[slideIndex]
   const isLast = slideIndex === INTRO_SLIDES.length - 1
+  const canGoBack = slideIndex > 0
 
   return (
     <section
@@ -178,6 +187,17 @@ function IntroAnimation({
         </div>
       </div>
       <div className="intro-controls">
+        <button
+          type="button"
+          className="intro-nav-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            goBack()
+          }}
+          disabled={!canGoBack}
+        >
+          BACK
+        </button>
         <span className="intro-advance-hint">
           {isLast ? 'ENTER THE FOREST' : 'click to continue'}
         </span>
@@ -265,21 +285,32 @@ function SavedBabyAnimation({
   const isLast = slideIndex === SAVED_BABY_SLIDES.length - 1
   const showRescueTitle = slideIndex <= 1
 
-  const advance = useCallback(() => {
-    if (phase !== 'hold' || isLast) {
+  const transitionToSlide = useCallback((getNextIndex: (current: number) => number) => {
+    if (phase !== 'hold') {
       return
     }
     if (timerRef.current) clearTimeout(timerRef.current)
     setPhase('out')
     timerRef.current = setTimeout(() => {
       setSlideIndex((current) => {
-        const next = Math.min(current + 1, SAVED_BABY_SLIDES.length - 1)
+        const next = getNextIndex(current)
         setPhase('in')
         timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
         return next
       })
     }, FADE_DURATION_MS)
-  }, [isLast, phase])
+  }, [phase])
+
+  const advance = useCallback(() => {
+    if (isLast) {
+      return
+    }
+    transitionToSlide((current) => Math.min(current + 1, SAVED_BABY_SLIDES.length - 1))
+  }, [isLast, transitionToSlide])
+
+  const goBack = useCallback(() => {
+    transitionToSlide((current) => Math.max(current - 1, 0))
+  }, [transitionToSlide])
 
   useEffect(() => {
     timerRef.current = setTimeout(() => setPhase('hold'), FADE_DURATION_MS)
@@ -354,9 +385,30 @@ function SavedBabyAnimation({
           MAIN MENU
         </button>
       </div>
-      {!isLast && phase === 'hold' && (
+      {!isLast && (
         <div className="intro-controls saved-baby-advance-controls">
+          <button
+            type="button"
+            className="intro-nav-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              goBack()
+            }}
+            disabled={slideIndex === 0}
+          >
+            BACK
+          </button>
           <span className="intro-advance-hint">click to continue</span>
+          <button
+            type="button"
+            className="intro-skip-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              onFinish()
+            }}
+          >
+            SKIP
+          </button>
         </div>
       )}
       <div className="intro-progress">

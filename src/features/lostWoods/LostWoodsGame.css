@@ -853,6 +853,28 @@
   transition: color 0.2s, border-color 0.2s;
 }
 
+.intro-nav-btn {
+  background: transparent;
+  border: 1px solid rgba(120, 80, 50, 0.4);
+  color: #5a4030;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+.intro-nav-btn:hover {
+  color: #b8906a;
+  border-color: rgba(180, 130, 80, 0.7);
+}
+
+.intro-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .intro-skip-btn:hover {
   color: #b8906a;
   border-color: rgba(180, 130, 80, 0.7);
