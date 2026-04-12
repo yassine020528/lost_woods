@@ -1,73 +1,113 @@
-# React + TypeScript + Vite
+# Lost Woods
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Lost Woods is a browser-based horror game built with React, TypeScript, and Vite. You cross a haunted forest, collect five keys, unlock an abandoned building, and rescue a kidnapped baby before the ritual is completed.
 
-Currently, two official plugins are available:
+The project is not a generic React starter anymore. It is a custom canvas-driven game with its own game loop, procedural forest generation, enemy AI, audio layering, menu flows, intro/outro sequences, and an indoor final area.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Premise
 
-## React Compiler
+The story follows a rescue mission through the Khmir forest in North Africa. A cult has hidden a baby inside an abandoned building deep in the woods. The building is locked, five keys are scattered across the forest, and hostile entities begin hunting you when your flashlight exposes you.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The game mixes fictional horror with real-world inspiration around child abduction and exploitation for witchcraft-related beliefs. The info and credits screens in-game make that distinction explicit.
 
-## Expanding the ESLint configuration
+## Gameplay
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Explore a dark forest generated on a tile map.
+- Collect all 5 keys to unlock the building door.
+- Avoid 5 roaming monster types: `stalker`, `spider`, `skull`, `wraith`, and `wolf`.
+- Manage 3 lives and a stamina bar while moving and sprinting.
+- Use your flashlight carefully because monsters react to it.
+- Cast a purge spell outdoors with a cooldown to destroy nearby threats.
+- Enter the building after unlocking it and save the baby to reach the ending.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Controls
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- `WASD` or arrow keys: move
+- `Shift`: sprint
+- `F`: toggle flashlight
+- `E`: cast the outdoor spell / save the baby indoors
+- `Esc`: pause or resume
+- Mouse: menu navigation and intro/outro progression
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Features
+
+- Full-screen canvas-based rendering inside a React app
+- Procedurally generated forest layout with reachable key placement
+- Separate outdoor and indoor scenes
+- HUD for keys, lives, stamina, hints, and spell cooldown
+- Intro, death, and rescue-ending cinematic screens
+- Layered horror audio, including ambient synthesis plus bundled sound assets
+- Mute support from menu and in-game UI
+- Info and credits screens integrated into the main menu
+
+## Tech Stack
+
+- React 19
+- TypeScript
+- Vite
+- ESLint
+- HTML5 Canvas
+- Browser audio via `Audio`, `AudioContext`, and custom controllers
+
+## Project Structure
+
+```text
+src/
+  App.tsx
+  features/lostWoods/
+    LostWoodsGame.tsx        # Main UI shell and overlays
+    useLostWoodsGame.ts      # Core game state, loop, input, rendering, logic
+    buildingSceneData.ts     # Indoor map and decor layout
+    audio.ts                 # Procedural ambient/game audio helpers
+    InfoContent.tsx          # In-game archive/info screen
+    constants.ts             # Gameplay constants
+    types.ts                 # Shared types
+public/
+  *.mp3                      # Menu, ambient, and event audio assets
+  *.png                      # Info/outro/favicons and supporting images
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Getting Started
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Requirements
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Node.js 18+ recommended
+- npm
+
+### Install
+
+```bash
+npm install
 ```
+
+### Run in Development
+
+```bash
+npm run dev
+```
+
+Then open the local Vite URL in your browser.
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Preview the Production Build
+
+```bash
+npm run preview
+```
+
+### Lint
+
+```bash
+npm run lint
+```
+
+## Notes
+
+- Audio playback starts after user interaction, which is expected for browser autoplay rules.
+- Images used in the game are AI-generated, as stated in the in-game credits.
+- Built output is generated in `dist/`.
