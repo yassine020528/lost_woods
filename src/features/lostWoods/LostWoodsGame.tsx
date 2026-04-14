@@ -42,6 +42,7 @@ const INTRO_SLIDES = [
 ]
 
 const FADE_DURATION_MS = 800
+const DESKTOP_MEDIA_QUERY = '(min-width: 1025px)'
 const DEATH_LINES = [
   'You died before the ritual could be stopped.',
   'You failed to save the child.',
@@ -443,7 +444,24 @@ const SoundIcon = ({ muted }: { muted: boolean }) => (
   </svg>
 )
 
-export function LostWoodsGame() {
+function MobileUnavailableScreen() {
+  return (
+    <main className="mobile-unavailable-screen" aria-label="Desktop only message">
+      <div className="mobile-unavailable-card">
+        <h1>LOST WOODS</h1>
+        <p className="mobile-unavailable-title">Desktop Only</p>
+        <p className="mobile-unavailable-text">
+          The game is only available on desktop right now.
+        </p>
+        <p className="mobile-unavailable-text">
+          Phone and tablet support is not available at the moment, but it will be soon.
+        </p>
+      </div>
+    </main>
+  )
+}
+
+function LostWoodsGameDesktop() {
   const {
     canvasRef,
     ui,
@@ -714,4 +732,31 @@ export function LostWoodsGame() {
       {ui.savedBabyVisible && <SavedBabyAnimation onFinish={backToMainMenu} isMuted={isMuted} toggleMute={toggleMute} />}
     </main>
   )
+}
+
+export function LostWoodsGame() {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') {
+      return true
+    }
+    return window.matchMedia(DESKTOP_MEDIA_QUERY).matches
+  })
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY)
+    const handleChange = () => setIsDesktop(mediaQuery.matches)
+
+    handleChange()
+    mediaQuery.addEventListener('change', handleChange)
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [])
+
+  if (!isDesktop) {
+    return <MobileUnavailableScreen />
+  }
+
+  return <LostWoodsGameDesktop />
 }
