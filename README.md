@@ -4,6 +4,7 @@ Lost Woods is a browser-based horror game built with React, TypeScript, and Vite
 
 The project is not a generic React starter anymore. It is a custom canvas-driven game with its own game loop, procedural forest generation, enemy AI, audio layering, menu flows, intro/outro sequences, and an indoor final area.
 
+[▶ Play Demo](https://lost-woods.netlify.app) &nbsp;·&nbsp;
 ## Premise
 
 The story follows a rescue mission through the Khmir forest in North Africa. A cult has hidden a baby inside an abandoned building deep in the woods. The building is locked, five keys are scattered across the forest, and hostile entities begin hunting you when your flashlight exposes you.
